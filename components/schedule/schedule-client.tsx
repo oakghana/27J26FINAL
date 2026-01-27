@@ -30,23 +30,32 @@ interface Schedule {
   status: "scheduled" | "completed" | "cancelled"
 }
 
-const initialScheduleState = {
+const getInitialScheduleState = () => ({
   title: "",
   description: "",
   start_time: "",
   end_time: "",
-  date: new Date().toISOString().split("T")[0],
+  date: "",
   type: "work" as const,
-}
+})
 
 export function ScheduleClient() {
+  const [mounted, setMounted] = useState(false)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
-  const [newSchedule, setNewSchedule] = useState(initialScheduleState)
+  const [selectedDate, setSelectedDate] = useState("")
+  const [newSchedule, setNewSchedule] = useState(getInitialScheduleState())
+
+  // Initialize dates on client side only
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]
+    setSelectedDate(today)
+    setNewSchedule(prev => ({ ...prev, date: today }))
+    setMounted(true)
+  }, [])
 
   const typeColors = useMemo(
     () => ({
@@ -128,7 +137,7 @@ export function ScheduleClient() {
         setSchedules((prev) => [...prev, newScheduleWithId])
         setSuccess("Schedule added successfully")
         setIsAddDialogOpen(false)
-        setNewSchedule(initialScheduleState)
+        setNewSchedule(getInitialScheduleState())
 
         setTimeout(() => setSuccess(null), 3000)
       } else {
@@ -144,7 +153,7 @@ export function ScheduleClient() {
       }
       setSchedules((prev) => [...prev, fallbackSchedule])
       setIsAddDialogOpen(false)
-      setNewSchedule(initialScheduleState)
+      setNewSchedule(getInitialScheduleState())
     }
   }, [newSchedule])
 
@@ -154,8 +163,10 @@ export function ScheduleClient() {
   )
 
   useEffect(() => {
-    fetchSchedules()
-  }, [fetchSchedules])
+    if (mounted && selectedDate) {
+      fetchSchedules()
+    }
+  }, [fetchSchedules, mounted, selectedDate])
 
   return (
     <div className="space-y-6">

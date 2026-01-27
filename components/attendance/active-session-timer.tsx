@@ -30,7 +30,8 @@ export function ActiveSessionTimer({
   canCheckOut = true,
   isCheckingOut = false,
 }: ActiveSessionTimerProps) {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [mounted, setMounted] = useState(false)
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [timeUntilCheckout, setTimeUntilCheckout] = useState<{
     hours: number
     minutes: number
@@ -39,6 +40,13 @@ export function ActiveSessionTimer({
   }>({ hours: 0, minutes: 0, seconds: 0, canCheckout: false })
 
   useEffect(() => {
+    setMounted(true)
+    setCurrentTime(new Date())
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    
     const timer = setInterval(() => {
       const now = new Date()
       setCurrentTime(now)
@@ -58,10 +66,10 @@ export function ActiveSessionTimer({
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [checkInTime, minimumWorkMinutes])
+  }, [mounted, checkInTime, minimumWorkMinutes])
 
   const checkInDate = new Date(checkInTime)
-  const elapsedTime = Math.floor((currentTime.getTime() - checkInDate.getTime()) / (1000 * 60))
+  const elapsedTime = currentTime ? Math.floor((currentTime.getTime() - checkInDate.getTime()) / (1000 * 60)) : 0
   const elapsedHours = Math.floor(elapsedTime / 60)
   const elapsedMinutes = elapsedTime % 60
 

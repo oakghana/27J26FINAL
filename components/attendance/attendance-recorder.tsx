@@ -168,7 +168,7 @@ export function AttendanceRecorder({
   const [windowsCapabilities, setWindowsCapabilities] = useState<ReturnType<
     typeof detectWindowsLocationCapabilities
   > | null>(null)
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split("T")[0])
+  const [currentDate, setCurrentDate] = useState("")
   const [showEarlyCheckoutDialog, setShowEarlyCheckoutDialog] = useState(false)
   const [earlyCheckoutReason, setEarlyCheckoutReason] = useState("")
   const [pendingCheckoutData, setPendingCheckoutData] = useState<{
@@ -203,8 +203,9 @@ export function AttendanceRecorder({
   const [lastCheckInAttempt, setLastCheckInAttempt] = useState<number>(0)
   const [deviceInfo, setDeviceInfo] = useState<any>(null)
 
-  // Initialize device info on client side only
+  // Initialize currentDate and device info on client side only
   useEffect(() => {
+    setCurrentDate(new Date().toISOString().split("T")[0])
     if (typeof window !== 'undefined') {
       setDeviceInfo(getDeviceInfo())
     }

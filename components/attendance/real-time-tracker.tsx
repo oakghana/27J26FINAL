@@ -35,18 +35,22 @@ interface RealTimeData {
 export function RealTimeTracker() {
   const [data, setData] = useState<RealTimeData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    setCurrentTime(new Date())
     fetchRealTimeData()
     const interval = setInterval(fetchRealTimeData, 30000) // Update every 30 seconds
     return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
+    if (!mounted) return
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [mounted])
 
   const fetchRealTimeData = async () => {
     try {
@@ -150,7 +154,7 @@ export function RealTimeTracker() {
               <Badge variant="secondary">{getStatusText(data.currentStatus)}</Badge>
             </div>
           </CardTitle>
-          <CardDescription>Live tracking • Last updated: {currentTime.toLocaleTimeString()}</CardDescription>
+          <CardDescription>Live tracking • Last updated: {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
