@@ -25,7 +25,14 @@ export async function updateSession(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Ensure cookies work across domains
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              sameSite: 'lax',
+              secure: true,
+            })
+          })
         },
       },
       global: {
@@ -38,34 +45,55 @@ export async function updateSession(request: NextRequest) {
       },
     })
 
-    if (
+    // Check if path requires authentication
+    const requiresAuth = 
       request.nextUrl.pathname !== "/" &&
       !request.nextUrl.pathname.startsWith("/auth") &&
       !request.nextUrl.pathname.startsWith("/_next") &&
       !request.nextUrl.pathname.startsWith("/favicon") &&
-      !request.nextUrl.pathname.startsWith("/api")
-    ) {
+      !request.nextUrl.pathname.startsWith("/api") &&
+      !request.nextUrl.pathname.startsWith("/images") &&
+      !request.nextUrl.pathname.startsWith("/manifest") &&
+      !request.nextUrl.pathname.endsWith(".ico") &&
+      !request.nextUrl.pathname.endsWith(".png") &&
+      !request.nextUrl.pathname.endsWith(".svg")
+
+    if (requiresAuth) {
+      // Skip auth check for v0 preview
       const isV0Preview = request.nextUrl.hostname.includes("vusercontent.net")
       if (!isV0Preview) {
         try {
+          // First try to get session from cookie (faster)
           const {
-            data: { user },
-          } = await supabase.auth.getUser()
+            data: { session },
+          } = await supabase.auth.getSession()
 
-          if (!user) {
-            const url = request.nextUrl.clone()
-            url.pathname = "/auth/login"
-            return NextResponse.redirect(url)
+          // If no session, try getUser as fallback
+          if (!session) {
+            const {
+              data: { user },
+            } = await supabase.auth.getUser()
+
+            if (!user) {
+              const url = request.nextUrl.clone()
+              url.pathname = "/auth/login"
+              return NextResponse.redirect(url)
+            }
           }
         } catch (authError: any) {
+          // Handle AbortError silently - request was cancelled
           if (authError.name === "AbortError") {
-            // Request was aborted, just continue without redirect
             return supabaseResponse
           }
-          // For other errors, redirect to login
-          if (process.env.NODE_ENV === "development") {
-            console.error("[v0] Auth error:", authError)
+          
+          // For network errors or timeouts, allow access to prevent blocking users
+          if (authError.message?.includes("fetch") || authError.message?.includes("network")) {
+            console.warn("[v0] Network error during auth check, allowing request to proceed")
+            return supabaseResponse
           }
+          
+          // For other errors, redirect to login
+          console.error("[v0] Auth error:", authError.message || authError)
           const url = request.nextUrl.clone()
           url.pathname = "/auth/login"
           return NextResponse.redirect(url)
@@ -75,9 +103,11 @@ export async function updateSession(request: NextRequest) {
 
     return supabaseResponse
   } catch (error: any) {
-    if (error.name !== "AbortError" && process.env.NODE_ENV === "development") {
-      console.error("[v0] Middleware error:", error)
+    // Don't log AbortErrors
+    if (error.name !== "AbortError") {
+      console.error("[v0] Middleware error:", error.message || error)
     }
+    // On any middleware error, allow request to proceed
     return NextResponse.next({
       request,
     })

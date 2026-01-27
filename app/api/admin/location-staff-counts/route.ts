@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     // Get staff counts for each location
     const { data: staffCounts, error } = await supabase
       .from("user_profiles")
-      .select("assigned_location, id")
-      .in("assigned_location", locationIds)
+      .select("assigned_location_id, id")
+      .in("assigned_location_id", locationIds)
       .eq("is_active", true)
 
     if (error) {
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     })
 
     staffCounts?.forEach(staff => {
-      if (staff.assigned_location && counts[staff.assigned_location] !== undefined) {
-        counts[staff.assigned_location]++
+      if (staff.assigned_location_id && counts[staff.assigned_location_id] !== undefined) {
+        counts[staff.assigned_location_id]++
       }
     })
 
