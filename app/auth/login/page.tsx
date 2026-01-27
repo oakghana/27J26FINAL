@@ -218,8 +218,12 @@ export default function LoginPage() {
 
       showSuccess("Login successful! Redirecting...", "Welcome Back")
 
-      // Quick redirect without delay
-      window.location.href = "/dashboard"
+      // Ensure session is persisted before navigation to avoid middleware redirect
+      await supabase.auth.getSession()
+      await supabase.auth.getUser().catch(() => null)
+
+      router.replace("/dashboard")
+      router.refresh()
     } catch (error: unknown) {
       showError(error instanceof Error ? error.message : "An error occurred during login", "Login Error")
     } finally {

@@ -22,6 +22,10 @@ export default async function SettingsPage() {
     .eq("id", user.id)
     .single()
 
+  if (!profile || profile.role === "regional_manager" || profile.role === "department_head") {
+    redirect("/dashboard")
+  }
+
   const settingsSections = [
     {
       title: "Device Proximity Settings",

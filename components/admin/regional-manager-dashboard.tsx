@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import { calculateDistance } from "@/lib/location-utils"
 import { useHydrated } from "@/hooks/use-hydrated"
-  const isHydrated = useHydrated()
+import { createClient } from "@/lib/supabase/client"
 
 interface RegionalManagerDashboardProps {
   userProfile: {
@@ -49,6 +49,11 @@ interface LocationStats {
 }
 
 export function RegionalManagerDashboard({ userProfile }: RegionalManagerDashboardProps) {
+  const isHydrated = useHydrated()
+  const supabase = createClient()
+  const [isLoading, setIsLoading] = useState(true)
+  const [locationStats, setLocationStats] = useState<LocationStats[]>([])
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const [managerLocation, setManagerLocation] = useState<{latitude: number, longitude: number} | null>(null)
 
   useEffect(() => {

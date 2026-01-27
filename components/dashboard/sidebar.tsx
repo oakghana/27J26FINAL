@@ -14,6 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -121,7 +130,7 @@ const navigationItems = [
     title: "Locations",
     href: "/dashboard/locations",
     icon: MapPin,
-    roles: ["admin", "regional_manager"],
+    roles: ["admin"],
     category: "admin",
   },
   {
@@ -149,7 +158,7 @@ const navigationItems = [
     title: "Device Monitoring",
     href: "/dashboard/device-violations",
     icon: ShieldAlert,
-    roles: ["admin", "regional_manager"],
+    roles: ["admin", "it-admin"],
     category: "admin",
     subItems: [
       {
@@ -166,35 +175,35 @@ const navigationItems = [
     title: "Staff Management",
     href: "/dashboard/staff",
     icon: Users,
-    roles: ["admin", "it-admin", "regional_manager"],
+    roles: ["admin", "it-admin"],
     category: "admin",
   },
   {
     title: "Staff Activation",
     href: "/dashboard/staff-activation",
     icon: UserCheck,
-    roles: ["admin", "regional_manager"],
+    roles: ["admin"],
     category: "admin",
   },
   {
     title: "Data Management",
     href: "/dashboard/data-management",
     icon: Upload,
-    roles: ["admin", "regional_manager"],
+    roles: ["admin"],
     category: "admin",
   },
   {
     title: "Audit Logs",
     href: "/dashboard/audit-logs",
     icon: Shield,
-    roles: ["admin", "regional_manager"],
+    roles: ["admin"],
     category: "admin",
   },
   {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
-    roles: ["admin", "department_head", "regional_manager", "staff"],
+    roles: ["admin", "it-admin", "staff"],
     category: "settings",
   },
 ]
@@ -202,8 +211,10 @@ const navigationItems = [
 export function Sidebar({ user, profile }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isClearingCache, setIsClearingCache] = useState(false)
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const effectiveRole = profile?.role === "hod" ? "department_head" : profile?.role
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -255,12 +266,12 @@ export function Sidebar({ user, profile }: SidebarProps) {
   }
 
   const isHRDepartmentHead =
-    profile?.role === "department_head" &&
+    effectiveRole === "department_head" &&
     (profile?.departments?.name?.toLowerCase().includes("hr") ||
       profile?.departments?.name?.toLowerCase().includes("human resource") ||
       profile?.departments?.code?.toLowerCase() === "hr")
 
-  const shouldShowHRPortal = profile?.role === "admin" || isHRDepartmentHead
+  const shouldShowHRPortal = effectiveRole === "admin" || isHRDepartmentHead
 
   const allNavigationItems = shouldShowHRPortal
     ? [
@@ -275,11 +286,24 @@ export function Sidebar({ user, profile }: SidebarProps) {
       ]
     : navigationItems
 
-  const filteredNavItems = allNavigationItems.filter((item) => item.roles.includes(profile?.role || "staff"))
+  const filteredNavItems = allNavigationItems.filter((item) => item.roles.includes(effectiveRole || "staff"))
 
   const mainItems = filteredNavItems.filter((item) => item.category === "main")
   const adminItems = filteredNavItems.filter((item) => item.category === "admin")
-  const settingsItems = filteredNavItems.filter((item) => item.category === "settings")
+  const settingsItems = filteredNavItems
+    .filter((item) => item.category === "settings")
+    .map((item) => {
+      if (item.title === "Settings" && !["admin", "it-admin"].includes(effectiveRole || "")) {
+        return {
+          ...item,
+          title: "Profile",
+          href: "/dashboard/profile",
+          icon: User,
+        }
+      }
+      return item
+    })
+  const adminHomeHref = adminItems[0]?.href || "/dashboard"
 
   const userInitials = profile ? `${profile.first_name[0]}${profile.last_name[0]}` : "U"
 
@@ -308,10 +332,20 @@ export function Sidebar({ user, profile }: SidebarProps) {
               <Image src="/images/qcc-logo.png" alt="QCC Logo" width={36} height={36} className="rounded-lg" />
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-xl opacity-0 hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="font-bold text-sidebar-foreground text-lg tracking-tight">QCC Attendance</h2>
               <p className="text-xs text-muted-foreground font-medium">Electronic System</p>
             </div>
+            {adminItems.length > 0 && (
+              <Link
+                href={adminHomeHref}
+                className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                aria-label="Go to admin"
+                title="Go to admin"
+              >
+                <Shield className="h-4 w-4" />
+              </Link>
+            )}
           </div>
 
           <nav className="flex-1 p-4 space-y-8 overflow-y-auto">
@@ -489,8 +523,8 @@ export function Sidebar({ user, profile }: SidebarProps) {
           </nav>
 
           <div className="p-4 border-t border-sidebar-border/50 bg-gradient-to-r from-muted/20 to-transparent">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+              <DialogTrigger asChild>
                 <Button
                   variant="ghost"
                   className="w-full justify-start gap-3 h-auto p-4 hover:bg-muted/50 rounded-xl transition-all duration-200 touch-manipulation min-h-[56px]"
@@ -514,41 +548,54 @@ export function Sidebar({ user, profile }: SidebarProps) {
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-64 shadow-xl border-border/50 bg-background/95 backdrop-blur-xl"
-              >
-                <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/dashboard/profile"
-                    className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-muted/50 rounded-lg transition-all duration-200 touch-manipulation min-h-[44px]"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="font-medium">Profile Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/dashboard/settings"
-                    className="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-muted/50 rounded-lg transition-all duration-200 touch-manipulation min-h-[44px]"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="font-medium">Preferences</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10 flex items-center gap-3 px-3 py-3 cursor-pointer rounded-lg transition-all duration-200 touch-manipulation min-h-[44px]"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="font-medium">Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Profile Details</DialogTitle>
+                  <DialogDescription>Review your account details or jump to settings.</DialogDescription>
+                </DialogHeader>
+                <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={profile?.profile_image_url || "/placeholder.svg"} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-sm font-bold">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                      {profile ? `${profile.first_name} ${profile.last_name}` : "Loading..."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Role</span>
+                    <Badge variant="secondary">{effectiveRole || "N/A"}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Department</span>
+                    <span className="font-medium">{profile?.departments?.name || "No department"}</span>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 sm:justify-start">
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard/profile">Profile</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard/settings">Preferences</Link>
+                  </Button>
+                  <Button variant="destructive" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <div className="mt-3">
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href="/dashboard/profile">Profile</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

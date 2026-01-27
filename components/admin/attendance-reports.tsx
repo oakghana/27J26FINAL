@@ -39,6 +39,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface AttendanceRecord {
   id: string
@@ -95,13 +96,8 @@ export function AttendanceReports() {
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [summary, setSummary] = useState<ReportSummary | null>(null)
   const [loading, setLoading] = useState(false)
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    return date.toISOString().split("T")[0]
-  })
-  const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split("T")[0]
-  })
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
   const [selectedUser, setSelectedUser] = useState("all")
   const [locations, setLocations] = useState([])
@@ -110,6 +106,7 @@ export function AttendanceReports() {
   const [selectedDistrict, setSelectedDistrict] = useState("all")
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const isHydrated = useHydrated()
 
   const [analyticsData, setAnalyticsData] = useState({
     dailyTrends: [],
@@ -123,12 +120,26 @@ export function AttendanceReports() {
   const [users, setUsers] = useState([])
 
   useEffect(() => {
+    if (!isHydrated) return
+
+    if (!startDate) {
+      const date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      setStartDate(date.toISOString().split("T")[0])
+    }
+
+    if (!endDate) {
+      setEndDate(new Date().toISOString().split("T")[0])
+    }
+  }, [isHydrated, startDate, endDate])
+
+  useEffect(() => {
+    if (!isHydrated || !startDate || !endDate) return
     fetchReport()
     fetchDepartments()
     fetchUsers()
     fetchLocations()
     fetchDistricts()
-  }, [startDate, endDate, selectedDepartment, selectedUser, selectedLocation, selectedDistrict])
+  }, [isHydrated, startDate, endDate, selectedDepartment, selectedUser, selectedLocation, selectedDistrict])
 
   const fetchReport = async () => {
     setLoading(true)
@@ -876,7 +887,9 @@ export function AttendanceReports() {
                     ) : (
                       filteredRecords.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell>{new Date(record.check_in_time).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {isHydrated ? new Date(record.check_in_time).toLocaleDateString() : "—"}
+                          </TableCell>
                           <TableCell>
                             <div>
                               <div className="font-medium">
@@ -891,7 +904,9 @@ export function AttendanceReports() {
                             </div>
                           </TableCell>
                           <TableCell>{record.user_profiles.departments?.name || "N/A"}</TableCell>
-                          <TableCell>{new Date(record.check_in_time).toLocaleTimeString()}</TableCell>
+                          <TableCell>
+                            {isHydrated ? new Date(record.check_in_time).toLocaleTimeString() : "—"}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <span>{record.check_in_location?.name || record.check_in_location_name || "N/A"}</span>
@@ -904,7 +919,11 @@ export function AttendanceReports() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString() : "N/A"}
+                            {record.check_out_time
+                              ? isHydrated
+                                ? new Date(record.check_out_time).toLocaleTimeString()
+                                : "—"
+                              : "N/A"}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

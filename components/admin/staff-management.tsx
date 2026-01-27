@@ -162,8 +162,18 @@ export function StaffManagement() {
       if (result.success) {
         const activeLocations = (result.data || []).filter((location: Location) => location.is_active !== false)
         setLocations(activeLocations)
+        return
+      }
+
+      console.warn("[v0] Admin locations unavailable, falling back to public active locations")
+      const fallbackResponse = await fetch("/api/locations/active")
+      const fallbackResult = await fallbackResponse.json()
+      console.log("[v0] Fallback locations fetch result:", fallbackResult)
+
+      if (Array.isArray(fallbackResult.locations)) {
+        setLocations(fallbackResult.locations)
       } else {
-        console.error("[v0] Failed to fetch locations:", result.error)
+        console.error("[v0] Failed to fetch locations:", result.error || fallbackResult.error)
         showError("Failed to load locations")
       }
     } catch (error) {

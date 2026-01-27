@@ -19,7 +19,7 @@ export default async function DepartmentSummariesPage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "department_head")) {
+  if (!profile || (profile.role !== "admin" && profile.role !== "department_head" && profile.role !== "regional_manager" && profile.role !== "hod")) {
     redirect("/dashboard")
   }
 

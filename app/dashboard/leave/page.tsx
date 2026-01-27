@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +10,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Calendar, Clock, User, CheckCircle, XCircle, Plus, CalendarDays, AlertCircle, MapPin, LogIn, LogOut } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Calendar, Clock, User, CheckCircle, XCircle, Plus, CalendarDays, AlertCircle, MapPin, LogIn, LogOut, Home } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { useHydrated } from "@/hooks/use-hydrated"
@@ -21,6 +31,7 @@ interface LeaveRequest {
   start_date: string
   end_date: string
   reason?: string
+  leave_document_url?: string | null
   status: 'pending' | 'approved' | 'rejected'
   approved_by?: string
   approved_at?: string
@@ -62,10 +73,15 @@ export default function LeaveManagementPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
+  const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null)
   const isHydrated = useHydrated()
+  const searchParams = useSearchParams()
   const [assignmentRows, setAssignmentRows] = useState<AssignmentRow[]>([])
   const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(false)
+  const [supportingFile, setSupportingFile] = useState<File | null>(null)
+  const [existingDocumentUrl, setExistingDocumentUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
     start_date: '',
     end_date: '',
@@ -73,10 +89,23 @@ export default function LeaveManagementPage() {
   })
   const { toast } = useToast()
   const supabase = createClient()
+  const isStaffLike =
+    userProfile?.role === "user" ||
+    userProfile?.role === "staff" ||
+    userProfile?.role === "intern" ||
+    userProfile?.role === "nsp" ||
+    userProfile?.role === "contract"
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    const shouldOpenForm = searchParams.get("request") === "1" || searchParams.get("new") === "1"
+    if (shouldOpenForm && isStaffLike) {
+      setIsRequestDialogOpen(true)
+    }
+  }, [searchParams, isStaffLike])
 
   const loadData = async () => {
     try {
@@ -100,7 +129,7 @@ export default function LeaveManagementPage() {
 
       setUserProfile(profile)
 
-      const adminRoles = ["admin", "it-admin", "regional_manager", "department_head", "hod"]
+      const adminRoles = ["admin", "it-admin", "regional_manager", "department_head"]
       if (adminRoles.includes(profile.role)) {
         await loadAssignments()
       }
@@ -172,29 +201,73 @@ export default function LeaveManagementPage() {
     try {
       setIsSubmitting(true)
 
+      let documentUrl = existingDocumentUrl
+
+      if (supportingFile) {
+        setIsUploading(true)
+        const uploadForm = new FormData()
+        uploadForm.append("file", supportingFile)
+
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadForm,
+        })
+
+        const uploadResult = await uploadResponse.json()
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadResult?.error || "File upload failed")
+        }
+
+        documentUrl = uploadResult.url
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { error } = await supabase
-        .from('leave_requests')
-        .insert({
-          user_id: user.id,
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          reason: formData.reason || null,
-          status: 'approved' // Auto-approve as per requirements
-        })
+      if (editingRequest) {
+        const { error } = await supabase
+          .from("leave_requests")
+          .update({
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            reason: formData.reason || null,
+            leave_document_url: documentUrl || null,
+            status: "pending",
+            approved_by: null,
+            approved_at: null,
+          })
+          .eq("id", editingRequest.id)
 
-      if (error) throw error
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from("leave_requests")
+          .insert({
+            user_id: user.id,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            reason: formData.reason || null,
+            leave_document_url: documentUrl || null,
+            status: "pending",
+          })
+
+        if (error) throw error
+      }
 
       toast({
-        title: "Success",
-        description: "Leave request submitted and approved automatically",
+        title: editingRequest ? "Leave Updated" : "Leave Requested",
+        description: editingRequest
+          ? "Your leave request has been updated and resubmitted for review."
+          : "Your leave request has been submitted for review.",
       })
 
       // Reset form and reload data
-      setFormData({ start_date: '', end_date: '', reason: '' })
-      setShowForm(false)
+      setFormData({ start_date: "", end_date: "", reason: "" })
+      setSupportingFile(null)
+      setExistingDocumentUrl(null)
+      setEditingRequest(null)
+      setIsRequestDialogOpen(false)
       loadData()
 
     } catch (error) {
@@ -206,6 +279,7 @@ export default function LeaveManagementPage() {
       })
     } finally {
       setIsSubmitting(false)
+      setIsUploading(false)
     }
   }
 
@@ -213,6 +287,14 @@ export default function LeaveManagementPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      const { data: currentRequest, error: requestError } = await supabase
+        .from("leave_requests")
+        .select("user_id, start_date, end_date")
+        .eq("id", requestId)
+        .single()
+
+      if (requestError) throw requestError
 
       const { error } = await supabase
         .from('leave_requests')
@@ -224,6 +306,26 @@ export default function LeaveManagementPage() {
         .eq('id', requestId)
 
       if (error) throw error
+
+      if (currentRequest?.user_id) {
+        const today = new Date().toISOString().split("T")[0]
+        const isActiveNow =
+          currentRequest.start_date <= today && currentRequest.end_date >= today && action === "approve"
+
+        try {
+          await supabase
+            .from("user_profiles")
+            .update({
+              leave_status: action === "reject" ? "active" : isActiveNow ? "on_leave" : "active",
+              leave_start_date: action === "reject" ? null : currentRequest.start_date,
+              leave_end_date: action === "reject" ? null : currentRequest.end_date,
+              leave_reason: action === "reject" ? null : undefined,
+            })
+            .eq("id", currentRequest.user_id)
+        } catch (statusError) {
+          console.warn("[v0] Leave status update skipped:", statusError)
+        }
+      }
 
       toast({
         title: "Success",
@@ -255,6 +357,62 @@ export default function LeaveManagementPage() {
     if (!dateString) return "—"
     if (!isHydrated) return "—"
     return new Date(dateString).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+  }
+
+  const isLeaveActive = (request: LeaveRequest) => {
+    const today = new Date().toISOString().split("T")[0]
+    return request.status === "approved" && request.start_date <= today && request.end_date >= today
+  }
+
+  const handleEditRequest = (request: LeaveRequest) => {
+    setEditingRequest(request)
+    setFormData({
+      start_date: request.start_date,
+      end_date: request.end_date,
+      reason: request.reason || "",
+    })
+    setExistingDocumentUrl(request.leave_document_url || null)
+    setSupportingFile(null)
+    setIsRequestDialogOpen(true)
+  }
+
+  const handleDeleteRequest = async (request: LeaveRequest) => {
+    if (!confirm("Cancel this leave request?")) return
+
+    try {
+      const { error } = await supabase.from("leave_requests").delete().eq("id", request.id)
+      if (error) throw error
+
+      if (request.user_id && isLeaveActive(request)) {
+        try {
+          await supabase
+            .from("user_profiles")
+            .update({
+              leave_status: "active",
+              leave_start_date: null,
+              leave_end_date: null,
+              leave_reason: null,
+            })
+            .eq("id", request.user_id)
+        } catch (statusError) {
+          console.warn("[v0] Leave status update skipped:", statusError)
+        }
+      }
+
+      toast({
+        title: "Leave Cancelled",
+        description: "Your leave request has been removed.",
+      })
+
+      loadData()
+    } catch (error) {
+      console.error("Error deleting leave request:", error)
+      toast({
+        title: "Error",
+        description: "Failed to cancel leave request",
+        variant: "destructive",
+      })
+    }
   }
 
   const loadAssignments = async () => {
@@ -344,75 +502,99 @@ export default function LeaveManagementPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leave Management</h1>
-          <p className="text-muted-foreground">
-            Manage approved leave requests and attendance blocking
-          </p>
+        <div className="flex items-center space-x-4">
+          <Button asChild variant="outline">
+            <Link href="/dashboard">Back to Dashboard</Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Leave Management</h1>
+            <p className="text-muted-foreground">
+              Manage approved leave requests and attendance blocking
+            </p>
+          </div>
         </div>
-        {(userProfile?.role === 'user' || userProfile?.role === 'staff') && (
-          <Button onClick={() => setShowForm(!showForm)}>
+        {isStaffLike && (
+          <Button
+            onClick={() => {
+              setEditingRequest(null)
+              setFormData({ start_date: "", end_date: "", reason: "" })
+              setSupportingFile(null)
+              setExistingDocumentUrl(null)
+              setIsRequestDialogOpen(true)
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Request Leave
           </Button>
         )}
       </div>
 
-      {/* Leave Request Form */}
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Submit Leave Request</CardTitle>
-            <CardDescription>
-              Leave requests are automatically approved and take effect immediately
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmitLeaveRequest} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Start Date</Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">End Date</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
+      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingRequest ? "Edit Leave Request" : "Request Leave"}</DialogTitle>
+            <DialogDescription>
+              Submit your leave period for review. Approved requests will block check-in/out during the leave window.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitLeaveRequest} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="reason">Reason (Optional)</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Please provide a reason for your leave request..."
-                  value={formData.reason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                  rows={3}
+                <Label htmlFor="start_date">Start Date</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, start_date: e.target.value }))}
+                  required
                 />
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Submit Request"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="end_date">End Date</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, end_date: e.target.value }))}
+                  required
+                />
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason (Optional)</Label>
+              <Textarea
+                id="reason"
+                placeholder="Please provide a reason for your leave request..."
+                value={formData.reason}
+                onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supporting_document">Supporting Document (Optional)</Label>
+              <Input
+                id="supporting_document"
+                type="file"
+                accept=".pdf,image/*"
+                onChange={(e) => setSupportingFile(e.target.files?.[0] || null)}
+              />
+              {existingDocumentUrl && !supportingFile && (
+                <p className="text-xs text-muted-foreground">
+                  A document is already attached. Upload a new file to replace it.
+                </p>
+              )}
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || isUploading}>
+                {isUploading ? "Uploading..." : isSubmitting ? "Saving..." : editingRequest ? "Update Request" : "Submit Request"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Leave Requests List */}
       <Card>
@@ -465,30 +647,67 @@ export default function LeaveManagementPage() {
                           <strong>Reason:</strong> {request.reason}
                         </p>
                       )}
+                      {request.leave_document_url && (
+                        <a
+                          href={request.leave_document_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View supporting document
+                        </a>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(request.status)}
-                      {(userProfile?.role === 'admin' || userProfile?.role === 'regional_manager' || userProfile?.role === 'hod') &&
-                       request.status === 'pending' && (
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproveReject(request.id, 'approve')}
-                            className="text-green-600 hover:text-green-700"
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApproveReject(request.id, 'reject')}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <XCircle className="w-3 h-3" />
-                          </Button>
-                        </div>
+                      {isLeaveActive(request) && (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Active Now
+                        </Badge>
                       )}
+                      <div className="flex gap-1">
+                        {(userProfile?.role === 'admin' || userProfile?.role === 'regional_manager' || userProfile?.role === 'department_head') &&
+                         request.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApproveReject(request.id, 'approve')}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApproveReject(request.id, 'reject')}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <XCircle className="w-3 h-3" />
+                            </Button>
+                          </>
+                        )}
+                        {request.user_id === userProfile?.id && isStaffLike && request.status !== "rejected" && !isLeaveActive(request) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditRequest(request)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        {request.user_id === userProfile?.id && isStaffLike && request.status === "pending" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteRequest(request)}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -498,7 +717,7 @@ export default function LeaveManagementPage() {
         </CardContent>
       </Card>
 
-      {(userProfile?.role === "admin" || userProfile?.role === "it-admin" || userProfile?.role === "regional_manager" || userProfile?.role === "department_head" || userProfile?.role === "hod") && (
+      {(userProfile?.role === "admin" || userProfile?.role === "it-admin" || userProfile?.role === "regional_manager" || userProfile?.role === "department_head") && (
         <Card className="border-0 bg-gradient-to-br from-background via-background to-primary/5 shadow-sm">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
@@ -586,10 +805,20 @@ export default function LeaveManagementPage() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Leave Policy:</strong> Leave requests are automatically approved and take effect immediately.
-          During approved leave periods, users cannot check-in or check-out, and their attendance records are excluded from reports.
+          <strong>Leave Policy:</strong> Leave requests require approval. Once approved, check-in and check-out are
+          blocked during the leave period and attendance records are excluded from reports.
         </AlertDescription>
       </Alert>
+
+      <Button
+        asChild
+        size="icon"
+        className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-lg"
+      >
+        <Link href="/dashboard" aria-label="Back to Dashboard">
+          <Home className="h-5 w-5" />
+        </Link>
+      </Button>
     </div>
   )
 }

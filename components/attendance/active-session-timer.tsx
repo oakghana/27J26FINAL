@@ -88,7 +88,7 @@ export function ActiveSessionTimer({
             <div>
               <h3 className="font-semibold text-lg text-foreground">Active Work Session</h3>
               <p className="text-sm text-muted-foreground">
-                Started {formatDistanceToNow(checkInDate, { addSuffix: true })}
+                Started {mounted ? formatDistanceToNow(checkInDate, { addSuffix: true }) : "—"}
               </p>
             </div>
           </div>

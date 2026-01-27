@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       .eq("id", user.id)
       .single()
 
-    if (!profile || (profile.role !== "admin" && profile.role !== "department_head")) {
+    if (!profile || (profile.role !== "admin" && profile.role !== "department_head" && profile.role !== "regional_manager" && profile.role !== "hod")) {
       return NextResponse.json({ error: "Unauthorized - Admin or Department Head only" }, { status: 403 })
     }
 
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       .eq("is_active", true)
 
     // Department heads only see their department
-    if (profile.role === "department_head") {
+    if (profile.role === "department_head" || profile.role === "hod") {
       staffQuery = staffQuery.eq("department_id", profile.department_id)
     } else if (departmentId) {
       // Admins can filter by department

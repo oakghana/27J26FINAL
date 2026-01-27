@@ -19,7 +19,7 @@ export default async function DeviceViolationsPage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile || !["admin", "it-admin", "department_head"].includes(profile.role)) {
+  if (!profile || !["admin", "it-admin"].includes(profile.role)) {
     redirect("/dashboard")
   }
 

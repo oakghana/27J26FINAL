@@ -15,11 +15,11 @@ export async function GET(request: Request) {
 
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("role, department_id")
+      .select("role, department_id, assigned_location_id")
       .eq("id", user.id)
       .single()
 
-    if (!profile || !["admin", "department_head"].includes(profile.role)) {
+    if (!profile || !["admin", "department_head", "regional_manager", "hod"].includes(profile.role)) {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
     }
 
@@ -55,8 +55,13 @@ export async function GET(request: Request) {
       .neq("role", "admin")
       .neq("role", "it-admin")
 
-    if (profile.role === "department_head") {
+    if (profile.role === "department_head" || profile.role === "hod") {
       query = query.eq("department_id", profile.department_id)
+    } else if (profile.role === "regional_manager") {
+      if (!profile.assigned_location_id) {
+        return NextResponse.json({ defaulters: [] })
+      }
+      query = query.eq("assigned_location_id", profile.assigned_location_id)
     } else if (departmentId && departmentId !== "all") {
       query = query.eq("department_id", departmentId)
     }

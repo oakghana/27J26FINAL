@@ -22,7 +22,7 @@ export default async function WarningsArchivePage() {
     .eq("id", user.id)
     .single()
 
-  if (!profile || !["admin", "department_head"].includes(profile.role)) {
+  if (!profile || !["admin", "department_head", "regional_manager", "hod"].includes(profile.role)) {
     redirect("/dashboard")
   }
 

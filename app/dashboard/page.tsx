@@ -2,17 +2,17 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/server"
-import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User, Bell, ShieldAlert } from "lucide-react"
+import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User, Bell, ShieldAlert, Plus } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { format } from "date-fns"
 import { MobileAppDownload } from "@/components/ui/mobile-app-download"
 import { StaffWarningModal } from "@/components/notifications/staff-warning-modal"
 import { WeeklySummaryModal } from "@/components/attendance/weekly-summary-modal"
-import { RegionalManagerDashboard } from "@/components/admin/regional-manager-dashboard"
 import { AdminLocationsOverview } from "@/components/admin/admin-locations-overview"
 
 export default async function DashboardPage() {
@@ -211,9 +211,9 @@ export default async function DashboardPage() {
                 className="ml-4 border-fuchsia-500/60 text-fuchsia-800 hover:bg-fuchsia-500/10"
                 asChild
               >
-                <Link href="/dashboard/leave">
-                  <User className="h-4 w-4 mr-2" />
-                  Manage Leave
+                <Link href="/dashboard/leave?request=1">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Leave Notification
                 </Link>
               </Button>
             </AlertDescription>
@@ -277,36 +277,6 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Check-ins"
-            value={monthlyAttendance || 0}
-            description="This month"
-            icon={Clock}
-            variant="success"
-          />
-          <StatsCard
-            title="Check-outs"
-            value={monthlyCheckOuts || 0}
-            description="This month"
-            icon={Clock}
-          />
-          <StatsCard
-            title="Warnings"
-            value={unreadWarnings || 0}
-            description="Unread"
-            icon={ShieldAlert}
-            variant={unreadWarnings ? "warning" : "default"}
-          />
-          <StatsCard
-            title="Notifications"
-            value={unreadNotifications || 0}
-            description="Unread"
-            icon={Bell}
-            variant={unreadNotifications ? "warning" : "default"}
-          />
-        </div>
-
         <div className="grid gap-8 lg:grid-cols-5">
           {/* Quick Actions */}
           <div className="lg:col-span-2">
@@ -327,36 +297,87 @@ export default async function DashboardPage() {
                   <Activity className="h-5 w-5 text-primary" />
                   Recent Activity
                 </CardTitle>
-                <CardDescription className="text-base">Your latest attendance records</CardDescription>
+                <CardDescription>View your recent attendance activity</CardDescription>
               </CardHeader>
               <CardContent>
                 {todayAttendance ? (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/10">
-                      <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">Checked in today</p>
-                        <p className="text-sm text-muted-foreground font-medium">
-                          {format(new Date(todayAttendance.check_in_time), "MMM d, yyyy h:mm a")}
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                      <div>
+                        <p className="font-medium">Today&apos;s Check-in</p>
+                        <p className="text-sm text-muted-foreground">
+                          {todayAttendance.check_in_time
+                            ? `At ${format(new Date(todayAttendance.check_in_time), "h:mm a")}`
+                            : "No check-in recorded"}
                         </p>
                       </div>
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Clock className="h-5 w-5 text-primary" />
-                      </div>
+                      <Badge variant={todayAttendance.check_in_time ? "default" : "secondary"}>
+                        {todayAttendance.check_in_time ? "Checked In" : "Not Checked In"}
+                      </Badge>
                     </div>
+
+                    {todayAttendance.check_out_time && (
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="font-medium">Today&apos;s Check-out</p>
+                          <p className="text-sm text-muted-foreground">
+                            {`At ${format(new Date(todayAttendance.check_out_time), "h:mm a")}`}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">Checked Out</Badge>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Clock className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-lg font-medium text-muted-foreground">No attendance recorded today</p>
+                  <div className="text-center py-6">
+                    <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No activity today</p>
                     <p className="text-sm text-muted-foreground mt-2">Use the quick actions to check in</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="bg-green-600 text-white shadow-md px-3 py-1.5 text-sm">Check-In</Badge>
+            <Badge className="bg-fuchsia-600 text-white shadow-md px-3 py-1.5 text-sm">Leave Notifications</Badge>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <StatsCard
+              title="Check-ins"
+              value={monthlyAttendance || 0}
+              description="This month"
+              icon={Clock}
+              variant="success"
+            />
+            <StatsCard
+              title="Check-outs"
+              value={monthlyCheckOuts || 0}
+              description="This month"
+              icon={Clock}
+              variant="warning"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <StatsCard
+            title="Warnings"
+            value={unreadWarnings || 0}
+            description="Unread"
+            icon={ShieldAlert}
+            variant={unreadWarnings ? "warning" : "default"}
+          />
+          <StatsCard
+            title="Notifications"
+            value={unreadNotifications || 0}
+            description="Unread"
+            icon={Bell}
+            variant={unreadNotifications ? "warning" : "default"}
+          />
         </div>
 
         <Card className="shadow-sm border-0 bg-gradient-to-br from-card to-card/50">
@@ -402,10 +423,6 @@ export default async function DashboardPage() {
           <AdminLocationsOverview locations={allLocations} />
         )}
 
-        {/* Regional Manager Dashboard */}
-        {profile?.role === "regional_manager" && (
-          <RegionalManagerDashboard userProfile={profile} />
-        )}
       </div>
       <MobileAppDownload variant="dashboard" />
     </DashboardLayout>

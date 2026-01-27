@@ -28,6 +28,7 @@ import {
   Filter,
   Building2,
 } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface Department {
   id: string
@@ -79,6 +80,7 @@ export function ExcuseDutyReviewClient({ userRole, userDepartment }: ExcuseDutyR
   const [submitting, setSubmitting] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
   const [departmentFilter, setDepartmentFilter] = useState("all")
+  const isHydrated = useHydrated()
 
   useEffect(() => {
     fetchExcuseDocuments()
@@ -375,7 +377,7 @@ export function ExcuseDutyReviewClient({ userRole, userDepartment }: ExcuseDutyR
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(doc.excuse_date).toLocaleDateString()}
+                          {isHydrated ? new Date(doc.excuse_date).toLocaleDateString() : "—"}
                         </div>
                       </TableCell>
                       <TableCell>{getDocumentTypeBadge(doc.document_type)}</TableCell>
@@ -444,7 +446,7 @@ export function ExcuseDutyReviewClient({ userRole, userDepartment }: ExcuseDutyR
                 <div>
                   <label className="text-sm font-medium">Date of Absence</label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(selectedDoc.excuse_date).toLocaleDateString()}
+                    {isHydrated ? new Date(selectedDoc.excuse_date).toLocaleDateString() : "—"}
                   </p>
                 </div>
                 <div>

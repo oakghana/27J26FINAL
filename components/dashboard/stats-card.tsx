@@ -17,23 +17,25 @@ interface StatsCardProps {
 export function StatsCard({ title, value, description, icon: Icon, variant = "default", trend }: StatsCardProps) {
   const variantStyles = {
     default: "bg-gradient-to-br from-card via-card/95 to-card/90 border-border/30 hover:border-border/50",
-    success: "bg-gradient-to-br from-primary/5 via-primary/8 to-primary/12 border-primary/20 hover:border-primary/30",
-    warning: "bg-gradient-to-br from-chart-2/5 via-chart-2/8 to-chart-2/12 border-chart-2/20 hover:border-chart-2/30",
+    success:
+      "bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-200/60 dark:from-emerald-950/40 dark:via-emerald-900/30 dark:to-emerald-900/20 border-emerald-200/60 hover:border-emerald-300/70",
+    warning:
+      "bg-gradient-to-br from-amber-50 via-amber-100 to-orange-200/60 dark:from-amber-950/40 dark:via-amber-900/30 dark:to-orange-900/20 border-amber-200/60 hover:border-amber-300/70",
     error:
       "bg-gradient-to-br from-destructive/5 via-destructive/8 to-destructive/12 border-destructive/20 hover:border-destructive/30",
   }
 
   const iconStyles = {
     default: "text-muted-foreground",
-    success: "text-primary",
-    warning: "text-chart-2",
+    success: "text-emerald-700 dark:text-emerald-300",
+    warning: "text-amber-700 dark:text-amber-300",
     error: "text-destructive",
   }
 
   const iconBgStyles = {
     default: "bg-gradient-to-br from-background/80 to-muted/30",
-    success: "bg-gradient-to-br from-primary/10 to-primary/20",
-    warning: "bg-gradient-to-br from-chart-2/10 to-chart-2/20",
+    success: "bg-gradient-to-br from-emerald-100/70 to-emerald-200/60 dark:from-emerald-900/40 dark:to-emerald-800/30",
+    warning: "bg-gradient-to-br from-amber-100/70 to-orange-200/60 dark:from-amber-900/40 dark:to-orange-800/30",
     error: "bg-gradient-to-br from-destructive/10 to-destructive/20",
   }
 

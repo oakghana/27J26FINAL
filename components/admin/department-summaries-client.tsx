@@ -180,6 +180,15 @@ export function DepartmentSummariesClient({ userRole, departmentId }: Department
   }
 
   const getWeekOptions = () => {
+    if (!isHydrated) {
+      return [
+        {
+          value: "current",
+          label: "Current Week",
+        },
+      ]
+    }
+
     const weeks = []
     const today = new Date()
     for (let i = 0; i < 8; i++) {

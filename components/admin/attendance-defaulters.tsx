@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertCircle, Send, Users, Calendar, MapPin } from "lucide-react"
 import Image from "next/image"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface DefaultingStaff {
   id: string
@@ -46,6 +47,7 @@ export function AttendanceDefaulters({ userRole, departmentId }: AttendanceDefau
   const [sendingWarning, setSendingWarning] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useHydrated()
   const [timeframe, setTimeframe] = useState<"daily" | "weekly">("daily")
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [locationFilter, setLocationFilter] = useState<string>("all")
@@ -351,7 +353,11 @@ ${senderLabel}`
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           Last check-in:{" "}
-                          {staff.last_check_in ? new Date(staff.last_check_in).toLocaleDateString() : "Never"}
+                          {staff.last_check_in
+                            ? isHydrated
+                              ? new Date(staff.last_check_in).toLocaleDateString()
+                              : "—"
+                            : "Never"}
                         </div>
                       </div>
                     </div>
@@ -395,7 +401,11 @@ ${senderLabel}`
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           Last check-out:{" "}
-                          {staff.last_check_out ? new Date(staff.last_check_out).toLocaleDateString() : "Never"}
+                          {staff.last_check_out
+                            ? isHydrated
+                              ? new Date(staff.last_check_out).toLocaleDateString()
+                              : "—"
+                            : "Never"}
                         </div>
                       </div>
                     </div>

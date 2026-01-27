@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("role, department_id")
+      .select("role, department_id, assigned_location_id")
       .eq("id", user.id)
       .single()
 
-    if (!profile || !["admin", "department_head", "staff", "regional_manager"].includes(profile.role)) {
+    if (!profile || !["admin", "department_head", "staff", "regional_manager", "hod"].includes(profile.role)) {
       console.error("[v0] Reports API - Insufficient permissions:", profile?.role)
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
     }
@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("attendance_records")
-      .select(`
+      .select(
+        `
         *,
         check_in_location:geofence_locations!check_in_location_id (
           name,
@@ -65,7 +66,9 @@ export async function GET(request: NextRequest) {
           address,
           district_id
         )
-      `)
+      `,
+        { count: "exact" },
+      )
       .gte("check_in_time", `${startDate}T00:00:00`)
       .lte("check_in_time", `${endDate}T23:59:59`)
 
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("check_in_location_id", locationId)
     }
 
-    const { data: attendanceRecords, error } = await query.order("check_in_time", { ascending: false })
+    const { data: attendanceRecords, error, count } = await query.order("check_in_time", { ascending: false })
 
     if (error) {
       console.error("[v0] Reports API - Attendance query error:", error)
@@ -125,6 +128,15 @@ export async function GET(request: NextRequest) {
         const user = userMap.get(record.user_id)
         return user?.department_id === profile.department_id
       })
+    } else if (profile.role === "regional_manager") {
+      if (!profile.assigned_location_id) {
+        filteredRecords = []
+      } else {
+        filteredRecords = attendanceRecords.filter((record) => {
+          const user = userMap.get(record.user_id)
+          return user?.assigned_location_id === profile.assigned_location_id
+        })
+      }
     } else if (profile.role === "staff") {
       // Staff can only see their own records (already filtered in query above)
       filteredRecords = attendanceRecords
