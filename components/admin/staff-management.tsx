@@ -57,6 +57,7 @@ interface Location {
   address: string
   latitude: number
   longitude: number
+  is_active?: boolean
 }
 
 export function StaffManagement() {
@@ -159,7 +160,8 @@ export function StaffManagement() {
       console.log("[v0] Locations fetch result:", result)
 
       if (result.success) {
-        setLocations(result.data || [])
+        const activeLocations = (result.data || []).filter((location: Location) => location.is_active !== false)
+        setLocations(activeLocations)
       } else {
         console.error("[v0] Failed to fetch locations:", result.error)
         showError("Failed to load locations")
@@ -419,6 +421,7 @@ export function StaffManagement() {
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="it-admin">IT-Admin</SelectItem>
+                  <SelectItem value="regional_manager">Regional Manager</SelectItem>
                   <SelectItem value="department_head">Department Head</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="nsp">NSP</SelectItem>
@@ -562,6 +565,7 @@ export function StaffManagement() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="staff">Staff</SelectItem>
+                          <SelectItem value="regional_manager">Regional Manager</SelectItem>
                           <SelectItem value="department_head">Department Head</SelectItem>
                           {(currentUserRole === "admin" || currentUserRole === "it-admin") && (
                             <SelectItem value="it-admin">IT Admin</SelectItem>
@@ -721,6 +725,7 @@ export function StaffManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="regional_manager">Regional Manager</SelectItem>
                         <SelectItem value="department_head">Department Head</SelectItem>
                         {(currentUserRole === "admin" || currentUserRole === "it-admin") && (
                           <SelectItem value="it-admin">IT Admin</SelectItem>
@@ -825,6 +830,8 @@ export function StaffManagement() {
                           variant={
                             member.role === "admin"
                               ? "default"
+                              : member.role === "regional_manager"
+                                ? "secondary"
                               : member.role === "department_head"
                                 ? "secondary"
                                 : member.role === "nsp"
@@ -837,7 +844,7 @@ export function StaffManagement() {
                           }
                           className="font-medium"
                         >
-                          {member.role.replace("_", " ")}
+                          {member.role.replace(/_/g, " ")}
                         </Badge>
                       </TableCell>
                       <TableCell>

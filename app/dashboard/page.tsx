@@ -5,13 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/server"
-import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User } from "lucide-react"
+import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User, Bell, ShieldAlert } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { format } from "date-fns"
 import { MobileAppDownload } from "@/components/ui/mobile-app-download"
 import { StaffWarningModal } from "@/components/notifications/staff-warning-modal"
-import { GPSStatusBanner } from "@/components/attendance/gps-status-banner"
 import { WeeklySummaryModal } from "@/components/attendance/weekly-summary-modal"
 import { RegionalManagerDashboard } from "@/components/admin/regional-manager-dashboard"
 import { AdminLocationsOverview } from "@/components/admin/admin-locations-overview"
@@ -128,6 +127,25 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .gte("check_in_time", startOfMonth)
 
+  const { count: monthlyCheckOuts } = await supabase
+    .from("attendance_records")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("check_out_time", startOfMonth)
+    .not("check_out_time", "is", null)
+
+  const { count: unreadWarnings } = await supabase
+    .from("staff_warnings")
+    .select("*", { count: "exact", head: true })
+    .eq("recipient_id", user.id)
+    .eq("is_read", false)
+
+  const { count: unreadNotifications } = await supabase
+    .from("staff_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("recipient_id", user.id)
+    .eq("is_read", false)
+
   // Get total locations with error handling
   const { count: totalLocations, error: locationsError } = await supabase
     .from("geofence_locations")
@@ -150,7 +168,6 @@ export default async function DashboardPage() {
       <StaffWarningModal />
 
       <div className="space-y-8">
-        <GPSStatusBanner />
 
         {currentLeave && (
           <Alert className="border-orange-200 bg-orange-50/50 shadow-sm">
@@ -179,19 +196,19 @@ export default async function DashboardPage() {
 
         {/* Leave Notification for Staff */}
         {!currentLeave && profile?.role === "staff" && (
-          <Alert className="border-blue-200 bg-blue-50/50 shadow-sm">
+          <Alert className="border-fuchsia-500/50 bg-gradient-to-r from-fuchsia-900/20 via-rose-900/10 to-fuchsia-900/20 shadow-sm">
             <User className="h-5 w-5 text-blue-600" />
             <AlertDescription className="flex items-center justify-between">
               <div>
-                <span className="text-blue-800 font-semibold text-base">Leave Management</span>
-                <span className="text-blue-700 ml-2">
+                <span className="text-fuchsia-900 font-semibold text-base">Leave Notifications</span>
+                <span className="text-fuchsia-900/70 ml-2">
                   Don't forget to submit your leave requests when needed
                 </span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="ml-4 border-blue-300 text-blue-700 hover:bg-blue-100"
+                className="ml-4 border-fuchsia-500/60 text-fuchsia-800 hover:bg-fuchsia-500/10"
                 asChild
               >
                 <Link href="/dashboard/leave">
@@ -257,6 +274,36 @@ export default async function DashboardPage() {
             value={profile?.departments?.code || "N/A"}
             description={profile?.departments?.name || "No department assigned"}
             icon={Users}
+          />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            title="Check-ins"
+            value={monthlyAttendance || 0}
+            description="This month"
+            icon={Clock}
+            variant="success"
+          />
+          <StatsCard
+            title="Check-outs"
+            value={monthlyCheckOuts || 0}
+            description="This month"
+            icon={Clock}
+          />
+          <StatsCard
+            title="Warnings"
+            value={unreadWarnings || 0}
+            description="Unread"
+            icon={ShieldAlert}
+            variant={unreadWarnings ? "warning" : "default"}
+          />
+          <StatsCard
+            title="Notifications"
+            value={unreadNotifications || 0}
+            description="Unread"
+            icon={Bell}
+            variant={unreadNotifications ? "warning" : "default"}
           />
         </div>
 

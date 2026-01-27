@@ -104,7 +104,9 @@ export function ActiveSessionTimer({
               Check-In
             </div>
             <p className="text-2xl font-bold text-foreground">
-              {checkInDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {mounted
+                ? checkInDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                : "—"}
             </p>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />

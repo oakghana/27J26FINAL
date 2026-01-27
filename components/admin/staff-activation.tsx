@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNotification } from "@/components/ui/notification-system"
 import { CheckCircle, XCircle, Clock, User, Mail, Phone, Building } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface PendingStaff {
   id: string
@@ -24,6 +25,7 @@ export default function StaffActivation() {
   const [pendingStaff, setPendingStaff] = useState<PendingStaff[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { addNotification } = useNotification()
+  const isHydrated = useHydrated()
 
   const fetchPendingStaff = async () => {
     try {
@@ -98,7 +100,7 @@ export default function StaffActivation() {
                         {staff.first_name} {staff.last_name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        Requested: {new Date(staff.created_at).toLocaleDateString()}
+                        Requested: {isHydrated ? new Date(staff.created_at).toLocaleDateString("en-US") : "—"}
                       </p>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Shield, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface TestResult {
   attempt: number
@@ -17,6 +18,7 @@ interface TestResult {
 export default function TestDuplicateCheckIn() {
   const [results, setResults] = useState<TestResult[]>([])
   const [isRunning, setIsRunning] = useState(false)
+  const isHydrated = useHydrated()
 
   const simulateCheckIn = async (attemptNumber: number): Promise<TestResult> => {
     console.log(`[v0] Test Attempt ${attemptNumber}: Starting check-in simulation`)
@@ -161,7 +163,9 @@ export default function TestDuplicateCheckIn() {
                       )}
                       Attempt #{result.attempt}
                     </CardTitle>
-                    <CardDescription>{new Date(result.timestamp).toLocaleTimeString()}</CardDescription>
+                    <CardDescription>
+                      {isHydrated ? new Date(result.timestamp).toLocaleTimeString("en-US") : "—"}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex items-start gap-2">

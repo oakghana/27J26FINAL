@@ -11,6 +11,7 @@ import { QrCode, Calendar, MapPin, Users, Plus, Search } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { QRScanner } from "@/components/qr/qr-scanner"
 import type { QRCodeData } from "@/components/qr/qr-scanner" // Assuming QRCodeData is defined here
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface QREvent {
   id: string
@@ -37,6 +38,7 @@ export function QREventsClient() {
     event_date: "",
   })
   const [attendanceMode, setAttendanceMode] = useState<"checkin" | "checkout" | null>(null)
+  const isHydrated = useHydrated()
 
   const supabase = createClient()
 
@@ -316,7 +318,7 @@ export function QREventsClient() {
                           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              {new Date(event.event_date).toLocaleDateString()}
+                              {isHydrated ? new Date(event.event_date).toLocaleDateString("en-US") : "—"}
                             </div>
                             <div className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />

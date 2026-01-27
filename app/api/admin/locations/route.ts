@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -20,7 +22,11 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 })
     }
 
-    const { data: locations, error } = await supabase.from("geofence_locations").select("*").order("name")
+    const { data: locations, error } = await supabase
+      .from("geofence_locations")
+      .select("*")
+      .eq("is_active", true)
+      .order("name")
 
     if (error) {
       console.error("[v0] Locations query error:", error)
@@ -39,6 +45,21 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const body = await request.json()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase.from("user_profiles").select("role").eq("id", user.id).single()
+
+    if (!profile || !["admin", "it-admin", "department_head"].includes(profile.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    }
 
     const { data: location, error } = await supabase
       .from("geofence_locations")
@@ -61,7 +82,7 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    return NextResponse.json(location)
+    return NextResponse.json({ success: true, data: location })
   } catch (error) {
     return NextResponse.json({ error: "Failed to create location" }, { status: 500 })
   }

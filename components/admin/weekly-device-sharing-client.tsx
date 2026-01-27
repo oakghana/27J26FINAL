@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface SharedDevice {
   device_id: string
@@ -46,6 +47,7 @@ interface WeeklyDeviceSharingClientProps {
 export default function WeeklyDeviceSharingClient({ userRole, departmentId }: WeeklyDeviceSharingClientProps) {
   const [sharedDevices, setSharedDevices] = useState<SharedDevice[]>([])
   const [loading, setLoading] = useState(true)
+  const isHydrated = useHydrated()
   const [error, setError] = useState<string | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
@@ -370,8 +372,12 @@ export default function WeeklyDeviceSharingClient({ userRole, departmentId }: We
               {/* Timeline */}
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>First Activity: {new Date(device.first_detected).toLocaleString()}</span>
-                  <span>Last Activity: {new Date(device.last_detected).toLocaleString()}</span>
+                  <span>
+                    First Activity: {isHydrated ? new Date(device.first_detected).toLocaleString("en-US") : "—"}
+                  </span>
+                  <span>
+                    Last Activity: {isHydrated ? new Date(device.last_detected).toLocaleString("en-US") : "—"}
+                  </span>
                 </div>
               </div>
             </CardContent>

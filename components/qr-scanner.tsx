@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Camera, CameraOff, QrCode, MapPin, Clock, CheckCircle, AlertCircle, KeyRound, Copy, Check } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useNotifications } from "@/components/ui/notification-system"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface ScanResult {
   success: boolean
@@ -38,6 +39,7 @@ export function QRScanner({ locations = [] }: { locations: Location[] }) {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const isHydrated = useHydrated()
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -731,7 +733,7 @@ export function QRScanner({ locations = [] }: { locations: Location[] }) {
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(record.check_in_time).toLocaleString()}
+                        {isHydrated ? new Date(record.check_in_time).toLocaleString("en-US") : "—"}
                       </div>
                     </div>
                   </div>

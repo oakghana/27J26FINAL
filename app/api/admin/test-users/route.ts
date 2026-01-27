@@ -5,7 +5,7 @@ export async function GET() {
   try {
     console.log("[v0] Test users API called")
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     if (!supabase) {
       console.error("[v0] Failed to create Supabase client")

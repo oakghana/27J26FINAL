@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Clock, Calendar, Zap, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
@@ -38,15 +39,17 @@ export function QuickActions({ isOnLeave = false, leavePeriod }: QuickActionsPro
       disabled: isOnLeave,
     },
     {
-      title: "View Schedule",
-      description: "Check upcoming events and important dates",
-      href: "/dashboard/schedule",
+      title: "Leave Notifications",
+      description: "View leave requests and approvals in real time",
+      href: "/dashboard/leave",
       icon: Calendar,
-      gradient: "from-emerald-50 via-emerald-100 to-emerald-150",
-      hoverGradient: "hover:from-emerald-100 hover:via-emerald-150 hover:to-emerald-200",
-      border: "border-emerald-200 hover:border-emerald-300",
-      iconBg: "bg-gradient-to-br from-emerald-100 to-emerald-200",
-      iconColor: "text-emerald-600",
+      gradient: "from-fuchsia-950/10 via-fuchsia-900/10 to-rose-900/10",
+      hoverGradient: "hover:from-fuchsia-900/20 hover:via-rose-900/20 hover:to-rose-900/10",
+      border: "border-fuchsia-500/40 hover:border-fuchsia-500/70",
+      iconBg: "bg-gradient-to-br from-fuchsia-500/20 to-rose-500/20",
+      iconColor: "text-fuchsia-600",
+      badge: "Live",
+      badgeClass: "bg-fuchsia-600 text-white shadow-sm",
     },
   ]
 
@@ -104,6 +107,9 @@ export function QuickActions({ isOnLeave = false, leavePeriod }: QuickActionsPro
                   <div className="flex-1 text-left space-y-1">
                     <div className="font-bold text-foreground text-lg flex items-center gap-2">
                       {action.title}
+                      {action.badge && (
+                        <Badge className={action.badgeClass}>{action.badge}</Badge>
+                      )}
                       <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1" />
                     </div>
                     <div className="text-sm text-muted-foreground font-medium leading-relaxed">{action.description}</div>

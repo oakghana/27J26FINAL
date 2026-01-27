@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, QrCode, Download, Copy, Check } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useNotifications } from "@/components/ui/notification-system"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface QREvent {
   id: string
@@ -38,6 +39,7 @@ interface Location {
 export function QRGenerator() {
   const [events, setEvents] = useState<QREvent[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const isHydrated = useHydrated()
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
@@ -334,7 +336,7 @@ export function QRGenerator() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {new Date(event.event_date).toLocaleDateString()}
+                        {isHydrated ? new Date(event.event_date).toLocaleDateString("en-US") : "—"}
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="h-4 w-4" />

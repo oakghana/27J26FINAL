@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 function createJsonResponse(data: any, status = 200) {
   return new NextResponse(JSON.stringify(data), {
     status,
@@ -63,6 +65,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[v0] Staff API - User authenticated:", user.id)
+
+    const { data: profile } = await supabase.from("user_profiles").select("role").eq("id", user.id).single()
+
+    if (!profile || (profile.role !== "admin" && profile.role !== "it-admin")) {
+      return createJsonResponse({ success: false, error: "Insufficient permissions", data: [] }, 403)
+    }
 
     const searchParams = request.nextUrl.searchParams
     const searchTerm = searchParams.get("search")

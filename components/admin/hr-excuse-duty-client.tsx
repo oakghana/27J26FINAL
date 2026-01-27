@@ -29,6 +29,7 @@ import {
   Archive,
   UserCheck,
 } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface ExcuseDocument {
   id: string
@@ -73,6 +74,7 @@ export function HRExcuseDutyClient() {
   const [hrNotes, setHrNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [statusFilter, setStatusFilter] = useState("hr_review")
+  const isHydrated = useHydrated()
 
   const fetchExcuseDocuments = useCallback(async () => {
     try {
@@ -378,7 +380,7 @@ export function HRExcuseDutyClient() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(doc.excuse_date).toLocaleDateString()}
+                          {isHydrated ? new Date(doc.excuse_date).toLocaleDateString("en-US") : "—"}
                         </div>
                       </TableCell>
                       <TableCell>{getDocumentTypeBadge(doc.document_type)}</TableCell>
@@ -444,7 +446,7 @@ export function HRExcuseDutyClient() {
                 <div>
                   <label className="text-sm font-medium">Date of Absence</label>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(selectedDoc.excuse_date).toLocaleDateString()}
+                    {isHydrated ? new Date(selectedDoc.excuse_date).toLocaleDateString("en-US") : "—"}
                   </p>
                 </div>
                 <div>

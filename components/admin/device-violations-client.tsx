@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle, Shield, Clock, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface Violation {
   id: string
@@ -37,6 +38,7 @@ export default function DeviceViolationsClient({
 }) {
   const [violations, setViolations] = useState<Violation[]>([])
   const [loading, setLoading] = useState(true)
+  const isHydrated = useHydrated()
   const router = useRouter()
 
   useEffect(() => {
@@ -144,7 +146,7 @@ export default function DeviceViolationsClient({
                     </CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      {new Date(violation.created_at).toLocaleString()}
+                      {isHydrated ? new Date(violation.created_at).toLocaleString("en-US") : "—"}
                     </CardDescription>
                   </div>
                   <Badge variant={violation.violation_type === "checkin_attempt" ? "destructive" : "secondary"}>

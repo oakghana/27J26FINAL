@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, Download, Calendar, User, Clock, MapPin } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface MissedCheckout {
   id: string
@@ -21,11 +22,19 @@ interface MissedCheckout {
 export default function MissedCheckoutsPage() {
   const [missedCheckouts, setMissedCheckouts] = useState<MissedCheckout[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7))
+  const [selectedMonth, setSelectedMonth] = useState<string>("")
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
   const [departments, setDepartments] = useState<string[]>([])
+  const isHydrated = useHydrated()
 
   useEffect(() => {
+    if (!selectedMonth) {
+      setSelectedMonth(new Date().toISOString().slice(0, 7))
+    }
+  }, [selectedMonth])
+
+  useEffect(() => {
+    if (!selectedMonth) return
     fetchMissedCheckouts()
   }, [selectedMonth, selectedDepartment])
 
@@ -122,6 +131,11 @@ export default function MissedCheckoutsPage() {
     return months
   }
 
+  const monthOptions = useMemo(() => {
+    if (!isHydrated) return [] as Array<{ value: string; label: string }>
+    return generateMonthOptions()
+  }, [isHydrated])
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -147,7 +161,7 @@ export default function MissedCheckoutsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {generateMonthOptions().map(({ value, label }) => (
+                {monthOptions.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>
@@ -200,7 +214,12 @@ export default function MissedCheckoutsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Date(selectedMonth).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              {isHydrated && selectedMonth
+                ? new Date(`${selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-US", {
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "—"}
             </div>
           </CardContent>
         </Card>
@@ -234,11 +253,11 @@ export default function MissedCheckoutsPage() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {new Date(mc.attendance_date).toLocaleDateString()}
+                        {isHydrated ? new Date(mc.attendance_date).toLocaleDateString("en-US") : "—"}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        Checked in: {new Date(mc.check_in_time).toLocaleTimeString()}
+                        Checked in: {isHydrated ? new Date(mc.check_in_time).toLocaleTimeString("en-US") : "—"}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { FileText, Calendar, Eye, Loader2, AlertTriangle } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface ExcuseDocument {
   id: string
@@ -29,6 +30,7 @@ export function ExcuseDutyHistory() {
   const [excuseDocuments, setExcuseDocuments] = useState<ExcuseDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useHydrated()
 
   useEffect(() => {
     fetchExcuseDocuments()
@@ -155,7 +157,7 @@ export function ExcuseDutyHistory() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(doc.excuse_date).toLocaleDateString()}
+                        {isHydrated ? new Date(doc.excuse_date).toLocaleDateString("en-US") : "—"}
                       </div>
                     </TableCell>
                     <TableCell>{getDocumentTypeBadge(doc.document_type)}</TableCell>
@@ -180,7 +182,11 @@ export function ExcuseDutyHistory() {
                             {doc.reviewed_by_profile.first_name} {doc.reviewed_by_profile.last_name}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {doc.reviewed_at ? new Date(doc.reviewed_at).toLocaleDateString() : ""}
+                            {doc.reviewed_at
+                              ? isHydrated
+                                ? new Date(doc.reviewed_at).toLocaleDateString("en-US")
+                                : "—"
+                              : ""}
                           </div>
                         </div>
                       ) : (

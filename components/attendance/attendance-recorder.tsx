@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge"
 import { LocationCodeDialog } from "@/components/dialogs/location-code-dialog"
 import { QRScannerDialog } from "@/components/dialogs/qr-scanner-dialog"
 import { FlashMessage } from "@/components/notifications/flash-message"
+import { useHydrated } from "@/hooks/use-hydrated"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Label } from "@/components/ui/label"
 import { clearAttendanceCache, shouldClearCache, setCachedDate } from "@/lib/utils/attendance-cache"
@@ -125,6 +126,7 @@ export function AttendanceRecorder({
 }: AttendanceRecorderProps) {
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [checkingMessage, setCheckingMessage] = useState("")
+  const isHydrated = useHydrated()
 
   const [isLoading, setIsLoading] = useState(false)
   const [userLocation, setUserLocation] = useState<LocationData | null>(null)
@@ -1555,11 +1557,13 @@ export function AttendanceRecorder({
             <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-3">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Check-In Time</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {new Date(localTodayAttendance.check_in_time).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {isHydrated
+                  ? new Date(localTodayAttendance.check_in_time).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "—"}
               </p>
               <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                 📍 {localTodayAttendance.check_in_location_name}
@@ -1569,11 +1573,13 @@ export function AttendanceRecorder({
             <div className="bg-white/50 dark:bg-gray-900/50 rounded-lg p-3">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Check-Out Time</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {new Date(localTodayAttendance.check_out_time).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {isHydrated
+                  ? new Date(localTodayAttendance.check_out_time).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "—"}
               </p>
               <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                 📍 {localTodayAttendance.check_out_location_name}
@@ -1747,19 +1753,21 @@ export function AttendanceRecorder({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Device Type</p>
-                    <p className="text-sm font-medium">{deviceInfo.device_type || 'Desktop'}</p>
+                    <p className="text-sm font-medium">{deviceInfo?.device_type || "Desktop"}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Device Name</p>
-                    <p className="text-sm font-medium">{deviceInfo.device_name || 'Windows PC'}</p>
+                    <p className="text-sm font-medium">{deviceInfo?.device_name || "Windows PC"}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">MAC Address</p>
-                    <p className="text-sm font-mono text-xs">{deviceInfo.device_id || 'N/A'}</p>
+                    <p className="text-sm font-mono text-xs">{deviceInfo?.device_id || "N/A"}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Browser</p>
-                    <p className="text-sm font-medium truncate">{deviceInfo.browser_info?.split(' ')[0] || 'Unknown'}</p>
+                    <p className="text-sm font-medium truncate">
+                      {deviceInfo?.browser_info?.split(" ")[0] || "Unknown"}
+                    </p>
                   </div>
                 </div>
               </div>

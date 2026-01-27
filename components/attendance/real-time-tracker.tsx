@@ -154,7 +154,9 @@ export function RealTimeTracker() {
               <Badge variant="secondary">{getStatusText(data.currentStatus)}</Badge>
             </div>
           </CardTitle>
-          <CardDescription>Live tracking • Last updated: {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}</CardDescription>
+          <CardDescription>
+            Live tracking • Last updated: {mounted && currentTime ? currentTime.toLocaleTimeString("en-US") : "--:--:--"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
@@ -192,7 +194,7 @@ export function RealTimeTracker() {
             <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium">
-                Checked in at {new Date(data.checkInTime).toLocaleTimeString()}
+                Checked in at {mounted ? new Date(data.checkInTime).toLocaleTimeString("en-US") : "—"}
               </span>
             </div>
           )}

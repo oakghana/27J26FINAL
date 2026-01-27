@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertTriangle, CheckCircle2, X, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface StaffWarning {
   id: string
@@ -24,6 +25,7 @@ export function StaffWarningModal() {
   const [warnings, setWarnings] = useState<StaffWarning[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const isHydrated = useHydrated()
 
   useEffect(() => {
     fetchWarnings()
@@ -153,7 +155,7 @@ export function StaffWarningModal() {
                       </Badge>
                       {warning.attendance_date && (
                         <span className="text-xs text-gray-600">
-                          Date: {new Date(warning.attendance_date).toLocaleDateString()}
+                          Date: {isHydrated ? new Date(warning.attendance_date).toLocaleDateString("en-US") : "—"}
                         </span>
                       )}
                     </div>
@@ -166,7 +168,7 @@ export function StaffWarningModal() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                       <span className="text-xs text-gray-500">
-                        Received: {new Date(warning.created_at).toLocaleString()}
+                        Received: {isHydrated ? new Date(warning.created_at).toLocaleString("en-US") : "—"}
                       </span>
                       <Button size="sm" variant="outline" onClick={() => markAsRead(warning.id)} className="text-xs">
                         <CheckCircle2 className="h-3 w-3 mr-1" />

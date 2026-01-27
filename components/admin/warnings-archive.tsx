@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { AlertCircle, Calendar, User, Mail, FileText, Clock, Search } from "lucide-react"
 import Image from "next/image"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface Warning {
   id: string
@@ -38,6 +39,7 @@ export function WarningsArchive({ userRole, departmentId, userId }: WarningsArch
   const [warnings, setWarnings] = useState<Warning[]>([])
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const isHydrated = useHydrated()
   const [departmentFilter, setDepartmentFilter] = useState<string>("all")
   const [warningTypeFilter, setWarningTypeFilter] = useState<string>("all")
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([])
@@ -92,6 +94,7 @@ export function WarningsArchive({ userRole, departmentId, userId }: WarningsArch
   })
 
   const formatDate = (dateString: string) => {
+    if (!isHydrated) return "—"
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -223,7 +226,7 @@ export function WarningsArchive({ userRole, departmentId, userId }: WarningsArch
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          Attendance Date: {new Date(warning.attendance_date).toLocaleDateString()}
+                          Attendance Date: {isHydrated ? new Date(warning.attendance_date).toLocaleDateString("en-US") : "—"}
                         </div>
                       </div>
                     </div>

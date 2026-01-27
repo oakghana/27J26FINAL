@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useHydrated } from "@/hooks/use-hydrated"
 import {
   BarChart,
   Bar,
@@ -72,17 +73,23 @@ export function PersonalAttendanceHistory() {
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useHydrated()
 
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date()
-    date.setMonth(date.getMonth() - 1)
-    return date.toISOString().split("T")[0]
-  })
-  const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split("T")[0]
-  })
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
 
   useEffect(() => {
+    if (startDate || endDate) return
+    const date = new Date()
+    const end = new Date().toISOString().split("T")[0]
+    date.setMonth(date.getMonth() - 1)
+    const start = date.toISOString().split("T")[0]
+    setStartDate(start)
+    setEndDate(end)
+  }, [startDate, endDate])
+
+  useEffect(() => {
+    if (!startDate || !endDate) return
     fetchPersonalAttendance()
   }, [startDate, endDate])
 
@@ -462,10 +469,14 @@ export function PersonalAttendanceHistory() {
                     ) : (
                       records.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell>{new Date(record.check_in_time).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            {isHydrated ? new Date(record.check_in_time).toLocaleDateString("en-US") : "—"}
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span>{new Date(record.check_in_time).toLocaleTimeString()}</span>
+                              <span>
+                                {isHydrated ? new Date(record.check_in_time).toLocaleTimeString("en-US") : "—"}
+                              </span>
                               <Badge variant="outline" className="text-xs w-fit">
                                 {record.check_in_method || "GPS"}
                               </Badge>
@@ -486,7 +497,11 @@ export function PersonalAttendanceHistory() {
                           <TableCell>
                             {record.check_out_time ? (
                               <div className="flex flex-col">
-                                <span>{new Date(record.check_out_time).toLocaleTimeString()}</span>
+                                <span>
+                                  {isHydrated
+                                    ? new Date(record.check_out_time).toLocaleTimeString("en-US")
+                                    : "—"}
+                                </span>
                                 <Badge variant="outline" className="text-xs w-fit">
                                   {record.check_out_method || "GPS"}
                                 </Badge>

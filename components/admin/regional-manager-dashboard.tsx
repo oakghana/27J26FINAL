@@ -18,6 +18,8 @@ import {
   UserX
 } from "lucide-react"
 import { calculateDistance } from "@/lib/location-utils"
+import { useHydrated } from "@/hooks/use-hydrated"
+  const isHydrated = useHydrated()
 
 interface RegionalManagerDashboardProps {
   userProfile: {
@@ -327,7 +329,7 @@ export function RegionalManagerDashboard({ userProfile }: RegionalManagerDashboa
                         )}
                         {user.last_checkin && (
                           <span className="text-xs text-muted-foreground">
-                            {new Date(user.last_checkin).toLocaleTimeString()}
+                            {isHydrated ? new Date(user.last_checkin).toLocaleTimeString("en-US") : "—"}
                           </span>
                         )}
                       </div>
@@ -351,7 +353,7 @@ export function RegionalManagerDashboard({ userProfile }: RegionalManagerDashboa
       </Card>
 
       <div className="text-xs text-muted-foreground text-center">
-        Last updated: {lastUpdated.toLocaleString()}
+        Last updated: {isHydrated ? lastUpdated.toLocaleString("en-US") : "—"}
       </div>
     </div>
   )

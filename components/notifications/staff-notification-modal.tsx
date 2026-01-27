@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Bell, X, CheckCheck, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface Notification {
   id: string
@@ -21,6 +22,7 @@ export function StaffNotificationModal() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const isHydrated = useHydrated()
 
   useEffect(() => {
     fetchNotifications()
@@ -176,10 +178,12 @@ export function StaffNotificationModal() {
 
                   {/* Timestamp */}
                   <p className="text-xs text-gray-500">
-                    {new Date(notification.created_at).toLocaleString("en-GB", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
+                    {isHydrated
+                      ? new Date(notification.created_at).toLocaleString("en-GB", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
+                      : "—"}
                   </p>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, Clock, Award, AlertTriangle, LogIn, LogOut } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface WeeklySummary {
   weekStart: string
@@ -26,6 +27,7 @@ export function WeeklySummaryModal() {
   const [open, setOpen] = useState(false)
   const [summary, setSummary] = useState<WeeklySummary | null>(null)
   const [loading, setLoading] = useState(false)
+  const isHydrated = useHydrated()
 
   useEffect(() => {
     const today = new Date()
@@ -82,8 +84,8 @@ export function WeeklySummaryModal() {
             Your Weekly Attendance Summary
           </DialogTitle>
           <DialogDescription>
-            Week of {new Date(summary.weekStart).toLocaleDateString()} -{" "}
-            {new Date(summary.weekEnd).toLocaleDateString()}
+            Week of {isHydrated ? new Date(summary.weekStart).toLocaleDateString("en-US") : "—"} -{" "}
+            {isHydrated ? new Date(summary.weekEnd).toLocaleDateString("en-US") : "—"}
           </DialogDescription>
         </DialogHeader>
 

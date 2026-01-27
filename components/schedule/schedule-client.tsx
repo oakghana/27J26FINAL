@@ -289,12 +289,14 @@ export function ScheduleClient() {
           <CardTitle className="flex items-center gap-2 text-primary">
             <Calendar className="h-5 w-5" />
             Schedule for{" "}
-            {new Date(selectedDate).toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {mounted && selectedDate
+              ? new Date(selectedDate).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "—"}
           </CardTitle>
         </CardHeader>
         <CardContent>

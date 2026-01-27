@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UserCheck, UserX, Search, Filter, Clock, CheckCircle, XCircle } from "lucide-react"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface PendingUser {
   id: string
@@ -30,6 +31,7 @@ export function UserApprovalsClient() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const isHydrated = useHydrated()
 
   const filteredUsers = useMemo(() => {
     let filtered = pendingUsers
@@ -242,7 +244,9 @@ export function UserApprovalsClient() {
                           {user.region}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm">
+                        {isHydrated ? new Date(user.created_at).toLocaleDateString("en-US") : "—"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button

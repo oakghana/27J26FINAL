@@ -22,6 +22,7 @@ import {
   Clock,
 } from "lucide-react"
 import Link from "next/link"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface Summary {
   userId: string
@@ -63,11 +64,18 @@ export function DepartmentSummariesClient({ userRole, departmentId }: Department
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all")
   const [selectedWeek, setSelectedWeek] = useState<string>("current")
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7))
+  const [selectedMonth, setSelectedMonth] = useState<string>("")
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([])
   const [selectedStaff, setSelectedStaff] = useState<Summary | null>(null)
   const [staffAttendanceDetails, setStaffAttendanceDetails] = useState<AttendanceDetail[]>([])
   const [loadingDetails, setLoadingDetails] = useState(false)
+  const isHydrated = useHydrated()
+
+  useEffect(() => {
+    if (!selectedMonth) {
+      setSelectedMonth(new Date().toISOString().slice(0, 7))
+    }
+  }, [selectedMonth])
 
   useEffect(() => {
     fetchDepartments()
@@ -187,7 +195,9 @@ export function DepartmentSummariesClient({ userRole, departmentId }: Department
             ? "Current Week"
             : i === 1
               ? "Last Week"
-              : `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`,
+              : isHydrated
+                ? `${weekStart.toLocaleDateString("en-US")} - ${weekEnd.toLocaleDateString("en-US")}`
+                : "—",
       })
     }
     return weeks
@@ -262,7 +272,9 @@ export function DepartmentSummariesClient({ userRole, departmentId }: Department
             <h1 className="text-3xl font-bold">Department Attendance Summaries</h1>
             <p className="text-muted-foreground">
               {dateRange.start &&
-                `${new Date(dateRange.start).toLocaleDateString()} - ${new Date(dateRange.end).toLocaleDateString()}`}
+                isHydrated
+                  ? `${new Date(dateRange.start).toLocaleDateString("en-US")} - ${new Date(dateRange.end).toLocaleDateString("en-US")}`
+                  : "—"}
             </p>
           </div>
         </div>
@@ -519,12 +531,22 @@ export function DepartmentSummariesClient({ userRole, departmentId }: Department
                   <TableBody>
                     {staffAttendanceDetails.map((record, idx) => (
                       <TableRow key={idx}>
-                        <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : "-"}
+                          {isHydrated ? new Date(record.date).toLocaleDateString("en-US") : "—"}
                         </TableCell>
                         <TableCell>
-                          {record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "-"}
+                          {record.checkInTime
+                            ? isHydrated
+                              ? new Date(record.checkInTime).toLocaleTimeString("en-US")
+                              : "—"
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {record.checkOutTime
+                            ? isHydrated
+                              ? new Date(record.checkOutTime).toLocaleTimeString("en-US")
+                              : "—"
+                            : "-"}
                         </TableCell>
                         <TableCell>{record.workHours.toFixed(2)}h</TableCell>
                         <TableCell className="max-w-[200px] truncate">{record.location}</TableCell>
