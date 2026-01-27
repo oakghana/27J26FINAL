@@ -1,9 +1,9 @@
-# QCC attendance app
+# FINAL
 
 *Automatically synced with your [v0.app](https://v0.app) deployments*
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ohemengappiah-gmailcoms-projects/v0-qcc-attendance-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/l48rrCEkMN2)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ohemengappiah-gmailcoms-projects/v0-27-j26-final)
+[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/yUviJmsadXO)
 
 ## Overview
 
@@ -14,13 +14,13 @@ Any changes you make to your deployed app will be automatically pushed to this r
 
 Your project is live at:
 
-**[https://vercel.com/ohemengappiah-gmailcoms-projects/v0-qcc-attendance-app](https://vercel.com/ohemengappiah-gmailcoms-projects/v0-qcc-attendance-app)**
+**[https://vercel.com/ohemengappiah-gmailcoms-projects/v0-27-j26-final](https://vercel.com/ohemengappiah-gmailcoms-projects/v0-27-j26-final)**
 
 ## Build your app
 
 Continue building your app on:
 
-**[https://v0.app/chat/projects/l48rrCEkMN2](https://v0.app/chat/projects/l48rrCEkMN2)**
+**[https://v0.app/chat/yUviJmsadXO](https://v0.app/chat/yUviJmsadXO)**
 
 ## How It Works
 
