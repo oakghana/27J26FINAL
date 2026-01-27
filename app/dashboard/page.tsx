@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { format } from "date-fns"
 import { MobileAppDownload } from "@/components/ui/mobile-app-download"
 import { StaffWarningModal } from "@/components/notifications/staff-warning-modal"
 import { GPSStatusBanner } from "@/components/attendance/gps-status-banner"
@@ -102,8 +103,8 @@ export default async function DashboardPage() {
 
     if (activeLeave) {
       currentLeave = {
-        startDate: new Date(activeLeave.start_date).toLocaleDateString(),
-        endDate: new Date(activeLeave.end_date).toLocaleDateString(),
+        startDate: format(new Date(activeLeave.start_date), "MMM d, yyyy"),
+        endDate: format(new Date(activeLeave.end_date), "MMM d, yyyy"),
         reason: activeLeave.reason
       }
     }
@@ -139,6 +140,9 @@ export default async function DashboardPage() {
     .select("*")
     .eq("is_active", true)
     .order("name")
+
+  // Calculate current day of month for attendance rate (computed on server)
+  const currentDayOfMonth = new Date().getDate()
 
   return (
     <DashboardLayout>
@@ -233,7 +237,7 @@ export default async function DashboardPage() {
               currentLeave
                 ? `Leave until ${currentLeave.endDate}`
                 : todayAttendance
-                ? `At ${new Date(todayAttendance.check_in_time).toLocaleTimeString()}`
+                ? `At ${format(new Date(todayAttendance.check_in_time), "h:mm a")}`
                 : "Click to check in"
             }
             icon={currentLeave ? Calendar : Clock}
@@ -286,7 +290,7 @@ export default async function DashboardPage() {
                       <div className="flex-1">
                         <p className="font-semibold text-foreground">Checked in today</p>
                         <p className="text-sm text-muted-foreground font-medium">
-                          {new Date(todayAttendance.check_in_time).toLocaleString()}
+                          {format(new Date(todayAttendance.check_in_time), "MMM d, yyyy h:mm a")}
                         </p>
                       </div>
                       <div className="p-2 bg-primary/10 rounded-lg">
@@ -324,7 +328,7 @@ export default async function DashboardPage() {
               </div>
               <div className="text-center p-6 bg-gradient-to-br from-chart-2/5 to-chart-2/10 rounded-xl border border-chart-2/10">
                 <div className="text-3xl font-heading font-bold text-chart-2 mb-2">
-                  {monthlyAttendance ? Math.round((monthlyAttendance / new Date().getDate()) * 100) : 0}%
+                  {monthlyAttendance ? Math.round((monthlyAttendance / currentDayOfMonth) * 100) : 0}%
                 </div>
                 <div className="text-sm font-medium text-muted-foreground">Attendance Rate</div>
               </div>
