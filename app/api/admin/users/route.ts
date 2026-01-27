@@ -45,13 +45,13 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Users API: User profile:", profile)
 
-    if (!["admin", "department_head", "it-admin"].includes(profile.role)) {
+    if (!["admin", "department_head", "it-admin", "regional_manager"].includes(profile.role)) {
       console.log("[v0] Users API: Insufficient permissions - user role:", profile.role)
       return NextResponse.json(
         {
           error: "Insufficient permissions",
           userRole: profile.role,
-          requiredRoles: ["admin", "department_head", "it-admin"],
+          requiredRoles: ["admin", "department_head", "it-admin", "regional_manager"],
         },
         { status: 403 },
       )

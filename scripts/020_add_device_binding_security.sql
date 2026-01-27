@@ -59,7 +59,7 @@ CREATE POLICY admins_view_all_bindings ON device_user_bindings
         )
     );
 
--- Department heads can view violations in their department
+-- Department heads and regional managers can view violations in their department
 CREATE POLICY dept_heads_view_violations ON device_security_violations
     FOR SELECT
     USING (
@@ -67,7 +67,7 @@ CREATE POLICY dept_heads_view_violations ON device_security_violations
             SELECT 1 FROM user_profiles up1
             INNER JOIN user_profiles up2 ON up1.department_id = up2.department_id
             WHERE up1.id = auth.uid()
-            AND up1.role = 'department_head'
+            AND up1.role IN ('department_head', 'regional_manager')
             AND up2.id = attempted_user_id
         )
     );

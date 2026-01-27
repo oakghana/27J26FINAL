@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MapPin, Navigation, Clock, RefreshCw, CheckCircle, XCircle } from "lucide-react"
+import { MapPin, Navigation, Clock, RefreshCw, CheckCircle, XCircle, Users } from "lucide-react"
 import { getCurrentLocation, calculateDistance } from "@/lib/geolocation"
 import { getDeviceInfo } from "@/lib/device-info"
 import { useDeviceRadiusSettings } from "@/hooks/use-device-radius-settings"
@@ -18,6 +18,7 @@ interface LocationWithDistance extends GeofenceLocation {
   distance: number
   isInRange: boolean
   formattedDistance: string
+  staffCount: number
 }
 
 export function AdminLocationsOverview({ locations }: AdminLocationsOverviewProps) {
@@ -28,6 +29,22 @@ export function AdminLocationsOverview({ locations }: AdminLocationsOverviewProp
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [locationsWithDistance, setLocationsWithDistance] = useState<LocationWithDistance[]>([])
   const { settings: deviceRadiusSettings } = useDeviceRadiusSettings()
+
+  // Fetch staff counts for locations
+  const fetchStaffCounts = async (locationIds: string[]) => {
+    try {
+      const { data: staffCounts } = await fetch('/api/admin/location-staff-counts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationIds })
+      }).then(res => res.json())
+
+      return staffCounts || {}
+    } catch (error) {
+      console.error('[v0] Failed to fetch staff counts:', error)
+      return {}
+    }
+  }
 
   useEffect(() => {
     loadLocation()
@@ -49,7 +66,7 @@ export function AdminLocationsOverview({ locations }: AdminLocationsOverviewProp
     }
   }
 
-  const calculateDistances = () => {
+  const calculateDistances = async () => {
     if (!userLocation) return
 
     const deviceInfo = getDeviceInfo()
@@ -76,17 +93,23 @@ export function AdminLocationsOverview({ locations }: AdminLocationsOverviewProp
       }
     }
 
+    // Fetch staff counts for all locations
+    const locationIds = locations.map(loc => loc.id)
+    const staffCounts = await fetchStaffCounts(locationIds)
+
     const locationsWithDist: LocationWithDistance[] = locations
       .map((loc) => {
         const distance = calculateDistance(userLocation.latitude, userLocation.longitude, loc.latitude, loc.longitude)
         const isInRange = distance <= proximityRadius
         const formattedDistance = distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(2)}km`
+        const staffCount = staffCounts[loc.id] || 0
 
         return {
           ...loc,
           distance,
           isInRange,
           formattedDistance,
+          staffCount,
         }
       })
       .sort((a, b) => a.distance - b.distance)
@@ -223,6 +246,12 @@ export function AdminLocationsOverview({ locations }: AdminLocationsOverviewProp
                       <Navigation className="h-4 w-4" />
                       <span className="font-medium text-gray-900 dark:text-gray-100">{location.formattedDistance}</span>
                       <span className="text-xs">away</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Users className="h-4 w-4" />
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{location.staffCount}</span>
+                      <span className="text-xs">staff assigned</span>
                     </div>
 
                     {(location.check_in_start_time || location.check_out_end_time) && (

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    if (!profile || !["admin", "department_head"].includes(profile.role)) {
+    if (!profile || !["admin", "department_head", "regional_manager"].includes(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase.from("staff_warnings").select("*").order("created_at", { ascending: false })
 
-    // Filter by department if not admin
+    // Filter by department if not admin or regional_manager
     if (profile.role === "department_head" && profile.department_id) {
       query = query.eq("department_id", profile.department_id)
     } else if (departmentId && departmentId !== "all") {

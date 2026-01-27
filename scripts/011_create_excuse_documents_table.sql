@@ -40,7 +40,7 @@ CREATE POLICY "Admins can view all excuse documents" ON public.excuse_documents
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.user_profiles 
-            WHERE id = auth.uid() AND role IN ('admin', 'department_head')
+            WHERE id = auth.uid() AND role IN ('admin', 'department_head', 'regional_manager')
         )
     );
 
@@ -48,7 +48,7 @@ CREATE POLICY "Admins can update excuse document status" ON public.excuse_docume
     FOR UPDATE USING (
         EXISTS (
             SELECT 1 FROM public.user_profiles 
-            WHERE id = auth.uid() AND role IN ('admin', 'department_head')
+            WHERE id = auth.uid() AND role IN ('admin', 'department_head', 'regional_manager')
         )
     );
 

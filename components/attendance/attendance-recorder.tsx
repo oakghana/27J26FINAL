@@ -201,7 +201,14 @@ export function AttendanceRecorder({
 
   const [isCheckInProcessing, setIsCheckInProcessing] = useState(false)
   const [lastCheckInAttempt, setLastCheckInAttempt] = useState<number>(0)
-  const [deviceInfo, setDeviceInfo] = useState(() => getDeviceInfo())
+  const [deviceInfo, setDeviceInfo] = useState<any>(null)
+
+  // Initialize device info on client side only
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDeviceInfo(getDeviceInfo())
+    }
+  }, [])
 
   // Check if cache should be cleared (new day)
   useEffect(() => {
@@ -341,7 +348,7 @@ export function AttendanceRecorder({
           qr_timestamp: qrData.timestamp,
           userLatitude: qrData.userLatitude,
           userLongitude: qrData.userLongitude,
-          device_info: getDeviceInfo(),
+          device_info: deviceInfo,
         }),
       })
 
@@ -393,7 +400,7 @@ export function AttendanceRecorder({
           qr_timestamp: qrData.timestamp,
           userLatitude: qrData.userLatitude,
           userLongitude: qrData.userLongitude,
-          device_info: getDeviceInfo(),
+          device_info: deviceInfo,
         }),
       })
 
@@ -440,9 +447,6 @@ export function AttendanceRecorder({
     const capabilities = detectWindowsLocationCapabilities()
     setWindowsCapabilities(capabilities)
     console.log("[v0] Windows location capabilities detected:", capabilities)
-
-    // Initialize device info
-    setDeviceInfo(getDeviceInfo())
 
     const autoLoadLocation = async () => {
       try {
@@ -641,11 +645,10 @@ export function AttendanceRecorder({
       console.log("[v0] Distance to each location:", locationDistances)
 
       // Get device-specific radius from settings based on device type
-      const deviceInfo = getDeviceInfo()
       let checkInRadius: number | undefined
       let checkOutRadius: number | undefined
       
-      if (deviceRadiusSettings) {
+      if (deviceRadiusSettings && deviceInfo) {
         if (deviceInfo.device_type === "mobile") {
           checkInRadius = deviceRadiusSettings.mobile.checkIn
           checkOutRadius = deviceRadiusSettings.mobile.checkOut
@@ -661,7 +664,7 @@ export function AttendanceRecorder({
         }
       }
 
-      console.log("[v0] Using device radius:", { checkInRadius, checkOutRadius, deviceType: deviceInfo.device_type })
+      console.log("[v0] Using device radius:", { checkInRadius, checkOutRadius, deviceType: deviceInfo?.device_type })
 
       const validation = validateAttendanceLocation(userLocation, realTimeLocations, proximitySettings, checkInRadius)
       const checkoutValidation = validateCheckoutLocation(userLocation, realTimeLocations, checkOutRadius)
@@ -831,7 +834,6 @@ export function AttendanceRecorder({
       setError(null)
       setFlashMessage(null)
 
-      const deviceInfo = getDeviceInfo()
       console.log("[v0] Device info:", deviceInfo)
 
       let resolvedNearestLocation = null // Declare nearestLocation here

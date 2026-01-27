@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    if (!profile || !["admin", "department_head", "staff"].includes(profile.role)) {
+    if (!profile || !["admin", "department_head", "staff", "regional_manager"].includes(profile.role)) {
       console.error("[v0] Reports API - Insufficient permissions:", profile?.role)
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
     }

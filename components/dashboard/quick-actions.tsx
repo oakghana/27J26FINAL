@@ -2,32 +2,40 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, QrCode, Calendar, Zap, ArrowRight } from "lucide-react"
+import { Clock, Calendar, Zap, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
-export function QuickActions() {
+interface QuickActionsProps {
+  isOnLeave?: boolean
+  leavePeriod?: {
+    startDate: string
+    endDate: string
+  }
+}
+
+export function QuickActions({ isOnLeave = false, leavePeriod }: QuickActionsProps) {
   const actions = [
     {
       title: "Check In/Out",
-      description: "Record your daily attendance with location verification",
+      description: isOnLeave
+        ? `On leave until ${leavePeriod?.endDate || 'unknown'}`
+        : "Record your daily attendance with location verification",
       href: "/dashboard/attendance",
       icon: Clock,
-      gradient: "from-green-50 via-green-100 to-green-150",
-      hoverGradient: "hover:from-green-100 hover:via-green-150 hover:to-green-200",
-      border: "border-green-200 hover:border-green-300",
-      iconBg: "bg-gradient-to-br from-green-100 to-green-200",
-      iconColor: "text-green-600",
-    },
-    {
-      title: "Scan QR Code",
-      description: "Quick attendance for events and special activities",
-      href: "/scan",
-      icon: QrCode,
-      gradient: "from-orange-50 via-orange-100 to-orange-150",
-      hoverGradient: "hover:from-orange-100 hover:via-orange-150 hover:to-orange-200",
-      border: "border-orange-200 hover:border-orange-300",
-      iconBg: "bg-gradient-to-br from-orange-100 to-orange-200",
-      iconColor: "text-orange-600",
+      gradient: isOnLeave
+        ? "from-gray-50 via-gray-100 to-gray-150"
+        : "from-green-50 via-green-100 to-green-150",
+      hoverGradient: isOnLeave
+        ? "hover:from-gray-100 hover:via-gray-150 hover:to-gray-200"
+        : "hover:from-green-100 hover:via-green-150 hover:to-green-200",
+      border: isOnLeave
+        ? "border-gray-200 hover:border-gray-300"
+        : "border-green-200 hover:border-green-300",
+      iconBg: isOnLeave
+        ? "bg-gradient-to-br from-gray-100 to-gray-200"
+        : "bg-gradient-to-br from-green-100 to-green-200",
+      iconColor: isOnLeave ? "text-gray-600" : "text-green-600",
+      disabled: isOnLeave,
     },
     {
       title: "View Schedule",
@@ -61,29 +69,49 @@ export function QuickActions() {
           return (
             <Button
               key={action.href}
-              asChild
-              className={`h-auto w-full flex items-center gap-6 p-6 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} border ${action.border} transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] touch-manipulation group relative overflow-hidden`}
+              asChild={!action.disabled}
+              disabled={action.disabled}
+              className={`h-auto w-full flex items-center gap-6 p-6 bg-gradient-to-r ${action.gradient} ${action.disabled ? '' : action.hoverGradient} border ${action.border} transition-all duration-300 ${action.disabled ? 'cursor-not-allowed opacity-60' : 'hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02]'} touch-manipulation group relative overflow-hidden`}
               variant="outline"
             >
-              <Link href={action.href}>
-                <div
-                  className={`flex-shrink-0 p-4 ${action.iconBg} rounded-2xl shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110`}
-                >
-                  <Icon
-                    className={`h-6 w-6 ${action.iconColor} transition-transform duration-300 group-hover:rotate-3`}
-                  />
-                </div>
-
-                <div className="flex-1 text-left space-y-1">
-                  <div className="font-bold text-foreground text-lg flex items-center gap-2">
-                    {action.title}
-                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1" />
+              {action.disabled ? (
+                <div className="w-full">
+                  <div
+                    className={`flex-shrink-0 p-4 ${action.iconBg} rounded-2xl shadow-sm`}
+                  >
+                    <Icon
+                      className={`h-6 w-6 ${action.iconColor}`}
+                    />
                   </div>
-                  <div className="text-sm text-muted-foreground font-medium leading-relaxed">{action.description}</div>
-                </div>
 
-                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Link>
+                  <div className="flex-1 text-left space-y-1">
+                    <div className="font-bold text-foreground text-lg flex items-center gap-2">
+                      {action.title}
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium leading-relaxed">{action.description}</div>
+                  </div>
+                </div>
+              ) : (
+                <Link href={action.href}>
+                  <div
+                    className={`flex-shrink-0 p-4 ${action.iconBg} rounded-2xl shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-110`}
+                  >
+                    <Icon
+                      className={`h-6 w-6 ${action.iconColor} transition-transform duration-300 group-hover:rotate-3`}
+                    />
+                  </div>
+
+                  <div className="flex-1 text-left space-y-1">
+                    <div className="font-bold text-foreground text-lg flex items-center gap-2">
+                      {action.title}
+                      <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1" />
+                    </div>
+                    <div className="text-sm text-muted-foreground font-medium leading-relaxed">{action.description}</div>
+                  </div>
+
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              )}
             </Button>
           )
         })}

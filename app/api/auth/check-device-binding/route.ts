@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
               .from("user_profiles")
               .select("id")
               .eq("department_id", currentUserProfile.department_id)
-              .eq("role", "department_head")
+              .in("role", ["department_head", "regional_manager"])
               .eq("is_active", true)
               .maybeSingle()
 

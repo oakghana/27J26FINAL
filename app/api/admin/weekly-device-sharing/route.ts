@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    if (!profile || (profile.role !== "admin" && profile.role !== "department_head")) {
+    if (!profile || (profile.role !== "admin" && profile.role !== "department_head" && profile.role !== "regional_manager")) {
       return NextResponse.json({ error: "Forbidden: Admin or Department Head access required" }, { status: 403 })
     }
 

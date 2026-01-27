@@ -35,7 +35,7 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM user_profiles
     WHERE id = auth.uid()
-    AND role IN ('admin', 'department_head')
+    AND role IN ('admin', 'department_head', 'regional_manager')
   )
 );
 

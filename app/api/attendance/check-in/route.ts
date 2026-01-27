@@ -89,8 +89,40 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle()
 
-    // Leave status checking removed - columns don't exist in database yet
-    // Will be re-enabled when leave management is implemented
+    // Check if user is on approved leave
+    const { data: leaveCheck, error: leaveError } = await supabase
+      .rpc('is_user_on_leave', { user_uuid: user.id })
+
+    if (leaveError) {
+      console.error("[v0] Error checking leave status:", leaveError)
+    } else if (leaveCheck) {
+      // Get the active leave details
+      const { data: activeLeave } = await supabase
+        .from("leave_requests")
+        .select("start_date, end_date")
+        .eq("user_id", user.id)
+        .eq("status", "approved")
+        .gte("end_date", new Date().toISOString().split("T")[0])
+        .lte("start_date", new Date().toISOString().split("T")[0])
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const startDate = activeLeave ? new Date(activeLeave.start_date).toLocaleDateString() : "unknown"
+      const endDate = activeLeave ? new Date(activeLeave.end_date).toLocaleDateString() : "unknown"
+
+      return NextResponse.json(
+        {
+          error: `Action blocked: You are on approved leave from ${startDate} to ${endDate}. Check-in is not allowed during leave period.`,
+          leaveBlocked: true,
+          leavePeriod: {
+            startDate,
+            endDate
+          }
+        },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json()
     const { latitude, longitude, location_id, device_info, qr_code_used, qr_timestamp } = body

@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/server"
-import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity } from "lucide-react"
+import { Clock, Calendar, Users, TrendingUp, UserCheck, AlertCircle, Activity, User } from "lucide-react"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { MobileAppDownload } from "@/components/ui/mobile-app-download"
 import { StaffWarningModal } from "@/components/notifications/staff-warning-modal"
 import { GPSStatusBanner } from "@/components/attendance/gps-status-banner"
 import { WeeklySummaryModal } from "@/components/attendance/weekly-summary-modal"
+import { RegionalManagerDashboard } from "@/components/admin/regional-manager-dashboard"
 import { AdminLocationsOverview } from "@/components/admin/admin-locations-overview"
 
 export default async function DashboardPage() {
@@ -82,6 +83,32 @@ export default async function DashboardPage() {
     pendingApprovals = count || 0
   }
 
+  // Check if user is currently on approved leave
+  const { data: leaveCheck, error: leaveError } = await supabase
+    .rpc('is_user_on_leave', { user_uuid: user.id })
+
+  let currentLeave = null
+  if (leaveCheck) {
+    const { data: activeLeave } = await supabase
+      .from("leave_requests")
+      .select("start_date, end_date, reason")
+      .eq("user_id", user.id)
+      .eq("status", "approved")
+      .gte("end_date", new Date().toISOString().split("T")[0])
+      .lte("start_date", new Date().toISOString().split("T")[0])
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (activeLeave) {
+      currentLeave = {
+        startDate: new Date(activeLeave.start_date).toLocaleDateString(),
+        endDate: new Date(activeLeave.end_date).toLocaleDateString(),
+        reason: activeLeave.reason
+      }
+    }
+  }
+
   // Get today's attendance with error handling
   const today = new Date().toISOString().split("T")[0]
   const { data: todayAttendance, error: attendanceError } = await supabase
@@ -121,6 +148,57 @@ export default async function DashboardPage() {
       <div className="space-y-8">
         <GPSStatusBanner />
 
+        {currentLeave && (
+          <Alert className="border-orange-200 bg-orange-50/50 shadow-sm">
+            <Calendar className="h-5 w-5 text-orange-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <span className="text-orange-800 font-semibold text-base">On Leave</span>
+                <span className="text-orange-700 ml-2">
+                  {currentLeave.startDate} - {currentLeave.endDate}
+                  {currentLeave.reason && ` • ${currentLeave.reason}`}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100"
+                asChild
+              >
+                <Link href="/dashboard/profile">
+                  View Details
+                </Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Leave Notification for Staff */}
+        {!currentLeave && profile?.role === "staff" && (
+          <Alert className="border-blue-200 bg-blue-50/50 shadow-sm">
+            <User className="h-5 w-5 text-blue-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <span className="text-blue-800 font-semibold text-base">Leave Management</span>
+                <span className="text-blue-700 ml-2">
+                  Don't forget to submit your leave requests when needed
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4 border-blue-300 text-blue-700 hover:bg-blue-100"
+                asChild
+              >
+                <Link href="/dashboard/leave">
+                  <User className="h-4 w-4 mr-2" />
+                  Manage Leave
+                </Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-2">
           <h1 className="text-4xl font-heading font-bold text-foreground tracking-tight">Dashboard</h1>
           <p className="text-lg text-muted-foreground font-medium">
@@ -150,14 +228,16 @@ export default async function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatsCard
             title="Today's Status"
-            value={todayAttendance ? "Checked In" : "Not Checked In"}
+            value={currentLeave ? "On Leave" : (todayAttendance ? "Checked In" : "Not Checked In")}
             description={
-              todayAttendance
+              currentLeave
+                ? `Leave until ${currentLeave.endDate}`
+                : todayAttendance
                 ? `At ${new Date(todayAttendance.check_in_time).toLocaleTimeString()}`
                 : "Click to check in"
             }
-            icon={Clock}
-            variant={todayAttendance ? "success" : "default"}
+            icon={currentLeave ? Calendar : Clock}
+            variant={currentLeave ? "warning" : (todayAttendance ? "success" : "default")}
           />
 
           <StatsCard
@@ -179,7 +259,13 @@ export default async function DashboardPage() {
         <div className="grid gap-8 lg:grid-cols-5">
           {/* Quick Actions */}
           <div className="lg:col-span-2">
-            <QuickActions />
+            <QuickActions
+              isOnLeave={!!currentLeave}
+              leavePeriod={currentLeave ? {
+                startDate: currentLeave.startDate,
+                endDate: currentLeave.endDate
+              } : undefined}
+            />
           </div>
 
           {/* Recent Activity */}
@@ -248,7 +334,11 @@ export default async function DashboardPage() {
                     ? "Administrator"
                     : profile?.role === "department_head"
                       ? "Department Head"
-                      : "Staff"}
+                      : profile?.role === "regional_manager"
+                        ? "Regional Manager"
+                        : profile?.role === "it-admin"
+                          ? "IT Administrator"
+                          : profile?.role?.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase()) || "Staff"}
                 </div>
                 <div className="text-sm font-medium text-muted-foreground">Role</div>
               </div>
@@ -259,6 +349,11 @@ export default async function DashboardPage() {
         {/* Admin Locations Overview */}
         {profile?.role === "admin" && allLocations && allLocations.length > 0 && (
           <AdminLocationsOverview locations={allLocations} />
+        )}
+
+        {/* Regional Manager Dashboard */}
+        {profile?.role === "regional_manager" && (
+          <RegionalManagerDashboard userProfile={profile} />
         )}
       </div>
       <MobileAppDownload variant="dashboard" />

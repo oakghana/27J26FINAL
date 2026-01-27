@@ -56,4 +56,4 @@ SELECT
     'policy_update',
     'pending'
 FROM public.user_profiles up
-WHERE up.is_active = true AND up.role IN ('staff', 'department_head', 'admin');
+WHERE up.is_active = true AND up.role IN ('staff', 'department_head', 'admin', 'regional_manager');

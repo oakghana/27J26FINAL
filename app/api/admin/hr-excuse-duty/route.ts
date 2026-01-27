@@ -29,13 +29,14 @@ export async function GET(request: NextRequest) {
     }
 
     const isAdmin = profile.role === "admin"
+    const isRegionalManager = profile.role === "regional_manager"
     const isHRDepartmentHead =
       profile.role === "department_head" &&
       profile.departments &&
       (profile.departments.name.toLowerCase().includes("hr") ||
         profile.departments.name.toLowerCase().includes("human resource"))
 
-    if (!isAdmin && !isHRDepartmentHead) {
+    if (!isAdmin && !isHRDepartmentHead && !isRegionalManager) {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
     }
 

@@ -38,7 +38,7 @@ CREATE POLICY "Admins and dept heads can send warnings" ON public.staff_warnings
     sender_id = auth.uid() AND
     EXISTS (
       SELECT 1 FROM public.user_profiles
-      WHERE id = auth.uid() AND role IN ('admin', 'department_head')
+      WHERE id = auth.uid() AND role IN ('admin', 'department_head', 'regional_manager')
     )
   );
 

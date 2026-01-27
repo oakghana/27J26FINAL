@@ -84,13 +84,13 @@ CREATE POLICY "Admins can view all summaries"
         )
     );
 
-CREATE POLICY "Department heads can view their department summaries"
+CREATE POLICY "Department heads and regional managers can view their department summaries"
     ON weekly_attendance_summaries FOR SELECT
     USING (
         EXISTS (
             SELECT 1 FROM user_profiles up1
             INNER JOIN user_profiles up2 ON up1.department_id = up2.department_id
-            WHERE up1.id = auth.uid() AND up1.role = 'department_head'
+            WHERE up1.id = auth.uid() AND up1.role IN ('department_head', 'regional_manager')
             AND up2.id = weekly_attendance_summaries.user_id
         )
     );

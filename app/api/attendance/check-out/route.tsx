@@ -50,17 +50,38 @@ export async function POST(request: NextRequest) {
         .maybeSingle(),
     ])
 
-    if (userProfile && userProfile.leave_status && userProfile.leave_status !== "active") {
-      const leaveType = userProfile.leave_status === "on_leave" ? "on leave" : "on sick leave"
-      const endDate = userProfile.leave_end_date
-        ? new Date(userProfile.leave_end_date).toLocaleDateString()
-        : "unspecified"
+    // Check if user is on approved leave
+    const { data: leaveCheck, error: leaveError } = await supabase
+      .rpc('is_user_on_leave', { user_uuid: user.id })
+
+    if (leaveError) {
+      console.error("[v0] Error checking leave status:", leaveError)
+    } else if (leaveCheck) {
+      // Get the active leave details
+      const { data: activeLeave } = await supabase
+        .from("leave_requests")
+        .select("start_date, end_date")
+        .eq("user_id", user.id)
+        .eq("status", "approved")
+        .gte("end_date", new Date().toISOString().split("T")[0])
+        .lte("start_date", new Date().toISOString().split("T")[0])
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const startDate = activeLeave ? new Date(activeLeave.start_date).toLocaleDateString() : "unknown"
+      const endDate = activeLeave ? new Date(activeLeave.end_date).toLocaleDateString() : "unknown"
 
       return NextResponse.json(
         {
-          error: `You are currently marked as ${leaveType} until ${endDate}. You cannot check out during your leave period.`,
+          error: `Action blocked: You are on approved leave from ${startDate} to ${endDate}. Check-out is not allowed during leave period.`,
+          leaveBlocked: true,
+          leavePeriod: {
+            startDate,
+            endDate
+          }
         },
-        { status: 403 },
+        { status: 403 }
       )
     }
 
@@ -351,7 +372,7 @@ export async function POST(request: NextRequest) {
     const checkOutTime = new Date()
     const workHours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)
 
-    // Get user's assigned location with working hours configuration
+    // Get user's assigned location with checkout time configuration
     const { data: userProfileData } = await supabase
       .from("user_profiles")
       .select(`
@@ -359,30 +380,47 @@ export async function POST(request: NextRequest) {
         assigned_location:geofence_locations!user_profiles_assigned_location_id_fkey (
           id,
           name,
-          check_out_end_time,
+          checkout_time,
           require_early_checkout_reason
         )
       `)
       .eq("id", user.id)
       .maybeSingle()
 
-    // Get location-specific checkout end time (default to 17:00 if not set)
-    const checkOutEndTime = userProfileData?.assigned_location?.check_out_end_time || "17:00"
+    // Get location-specific checkout time (default to 17:00 if not set)
+    const checkoutTimeStr = userProfileData?.assigned_location?.checkout_time || "17:00"
     const requireEarlyCheckoutReason = userProfileData?.assigned_location?.require_early_checkout_reason ?? true
-    
-    // Parse checkout end time (HH:MM format)
-    const [endHour, endMinute] = checkOutEndTime.split(":").map(Number)
-    const checkoutEndTimeMinutes = endHour * 60 + (endMinute || 0)
+
+    // Parse checkout time (TIME format from database)
+    const [checkoutHour, checkoutMinute] = checkoutTimeStr.split(":").map(Number)
+    const checkoutTimeMinutes = checkoutHour * 60 + (checkoutMinute || 0)
     const currentTimeMinutes = checkOutTime.getHours() * 60 + checkOutTime.getMinutes()
-    
-    const isEarlyCheckout = currentTimeMinutes < checkoutEndTimeMinutes
+
+    // Validate checkout time - users can only checkout at or after their location's checkout time
+    if (currentTimeMinutes < checkoutTimeMinutes) {
+      const checkoutTimeFormatted = `${checkoutHour.toString().padStart(2, '0')}:${(checkoutMinute || 0).toString().padStart(2, '0')}`
+      const currentTimeFormatted = `${checkOutTime.getHours().toString().padStart(2, '0')}:${checkOutTime.getMinutes().toString().padStart(2, '0')}`
+
+      return NextResponse.json(
+        {
+          error: `Checkout not available yet. You can check out at ${checkoutTimeFormatted} for your assigned location (${userProfileData?.assigned_location?.name || 'Unknown Location'}). Current time: ${currentTimeFormatted}.`,
+          checkoutBlocked: true,
+          locationCheckoutTime: checkoutTimeFormatted,
+          currentTime: currentTimeFormatted,
+          assignedLocation: userProfileData?.assigned_location?.name || 'Unknown Location'
+        },
+        { status: 403 }
+      )
+    }
+
+    const isEarlyCheckout = currentTimeMinutes < checkoutTimeMinutes
     
     let earlyCheckoutWarning = null
 
     console.log("[v0] API Checkout validation:", {
       userId: user.id,
       assignedLocation: userProfileData?.assigned_location?.name || "Unknown",
-      checkOutEndTime,
+      checkoutTime: checkoutTimeStr,
       currentTime: `${checkOutTime.getHours()}:${checkOutTime.getMinutes().toString().padStart(2, '0')}`,
       isEarlyCheckout,
       requireEarlyCheckoutReason,
@@ -390,9 +428,9 @@ export async function POST(request: NextRequest) {
 
     if (isEarlyCheckout && requireEarlyCheckoutReason) {
       earlyCheckoutWarning = {
-        message: `Early checkout detected at ${checkOutTime.toLocaleTimeString()}. Standard work hours end at ${checkOutEndTime}.`,
+        message: `Early checkout detected at ${checkOutTime.toLocaleTimeString()}. Standard checkout time is ${checkoutTimeStr} for your location.`,
         checkoutTime: checkOutTime.toISOString(),
-        standardEndTime: checkOutEndTime,
+        standardEndTime: checkoutTimeStr,
       }
     }
 
