@@ -42,7 +42,8 @@ export default function Sidebar() {
 
   const mainMenuItems = [
     { label: 'Dashboard', icon: Home, href: '/dashboard' },
-    { label: 'Attendance', icon: Clock, href: '/attendance' },
+    { label: 'Attendance', icon: Clock, href: '/attendance/check-in' },
+    { label: 'Leave Management', icon: FileText, href: '/leave/management' },
     { label: 'Excuse Duty', icon: FileText, href: '/excuse-duty' },
     { label: 'Schedule', icon: Calendar, href: '/schedule' },
     { label: 'Reports', icon: BarChart3, href: '/reports' },
@@ -52,6 +53,7 @@ export default function Sidebar() {
   const adminMenuItems = [
     { label: 'Excuse Duty Review', icon: FileText, href: '/admin/excuse-review' },
     { label: 'Locations', icon: MapPin, href: '/admin/locations' },
+    { label: 'Staff', icon: Users, href: '/admin/staff' },
     { label: 'QR Events', icon: QrCode, href: '/admin/qr-events' },
     { label: 'Defaulters', icon: AlertTriangle, href: '/admin/defaulters' },
     { label: 'Warnings Archive', icon: AlertTriangle, href: '/admin/warnings' },
