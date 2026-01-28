@@ -33,7 +33,7 @@ export default function Home() {
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900">
+      <div className="flex min-h-screen items-center justify-center bg-[#1a1f26]">
         <Spinner />
       </div>
     )
