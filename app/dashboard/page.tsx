@@ -3,246 +3,203 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
+import { Button } from '@/components/ui/button'
+import Sidebar from '@/components/sidebar'
+import { MapPin, AlertCircle, TrendingUp, Users, Clock } from 'lucide-react'
 
-interface UserProfile {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  department: string
-  role: string
-}
-
-export default function Dashboard() {
-  const [user, setUser] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [attendance, setAttendance] = useState<any>(null)
+export default function DashboardPage() {
   const router = useRouter()
   const supabase = createClient()
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [attendanceData, setAttendanceData] = useState<any>(null)
+  const [stats, setStats] = useState({
+    attendanceStatus: 'Not Checked In',
+    daysAttended: 15,
+    department: 'Loading...',
+  })
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const loadUserData = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-
-        if (!authUser) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (!currentUser) {
           router.push('/auth/login')
           return
         }
+        setUser(currentUser)
 
-        // Fetch user profile from database
-        const { data: profileData, error } = await supabase
+        // Fetch user profile
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('id', currentUser.id)
           .single()
 
-        if (error) {
-          console.log('[v0] Profile fetch error:', error)
-          // User exists but profile might not be created yet
-          setUser({
-            id: authUser.id,
-            first_name: authUser.user_metadata?.first_name || 'User',
-            last_name: authUser.user_metadata?.last_name || '',
-            email: authUser.email || '',
-            department: 'N/A',
-            role: 'staff'
-          })
-        } else {
-          setUser(profileData)
+        if (profile) {
+          setStats((prev) => ({
+            ...prev,
+            department: profile.department || 'Not assigned',
+          }))
         }
 
         // Fetch today's attendance
         const today = new Date().toISOString().split('T')[0]
-        const { data: attendanceData } = await supabase
+        const { data: attendance } = await supabase
           .from('attendance_records')
           .select('*')
-          .eq('user_id', authUser.id)
+          .eq('user_id', currentUser.id)
           .gte('created_at', today + 'T00:00:00')
           .order('created_at', { ascending: false })
           .limit(1)
 
-        if (attendanceData && attendanceData.length > 0) {
-          setAttendance(attendanceData[0])
+        if (attendance && attendance.length > 0) {
+          const record = attendance[0]
+          setAttendanceData(record)
+          setStats((prev) => ({
+            ...prev,
+            attendanceStatus: record.check_out_time ? 'Checked Out' : 'Checked In',
+          }))
         }
-      } catch (err) {
-        console.log('[v0] Fetch error:', err)
+      } catch (error) {
+        console.log('[v0] Error loading user data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchUserData()
-  }, [router, supabase])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-  }
+    loadUserData()
+  }, [supabase, router])
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
+      <div className="flex h-screen bg-[#1a1f26]">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[#a0aab5]">Loading...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="flex min-h-screen bg-[#1a1f26]">
+      <Sidebar />
+
+      <main className="flex-1 overflow-auto">
+        {/* Top Bar */}
+        <div className="sticky top-0 bg-[#252d36] border-b border-[#3d4a5a] px-8 py-4 flex items-center justify-between z-10">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
-              Dashboard
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">
-              Welcome, {user?.first_name} {user?.last_name}
-            </p>
+            <h1 className="text-2xl font-bold text-[#00ff00]">Dashboard</h1>
+            <p className="text-sm text-[#a0aab5]">Welcome back, {user?.user_metadata?.first_name || 'User'}</p>
           </div>
-          <Button onClick={handleLogout} variant="destructive">
-            Logout
-          </Button>
+          <button className="text-[#a0aab5] hover:text-[#f5f5f5]">⊙</button>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* User Info Card */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Profile Information
-            </h2>
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-slate-500 dark:text-slate-400">Email</p>
-                <p className="text-slate-900 dark:text-white font-medium">{user?.email}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 dark:text-slate-400">Department</p>
-                <p className="text-slate-900 dark:text-white font-medium">{user?.department}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 dark:text-slate-400">Role</p>
-                <p className="text-slate-900 dark:text-white font-medium capitalize">{user?.role}</p>
-              </div>
+        {/* Content */}
+        <div className="p-8">
+          {/* GPS Location Alert */}
+          <div className="mb-6 p-4 bg-[#ff9800]/10 border border-[#ff9800]/50 rounded-lg flex gap-3 items-start">
+            <AlertCircle className="h-5 w-5 text-[#ff9800] flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-[#ff9800] text-sm">GPS Location Required</p>
+              <p className="text-xs text-[#a0aab5] mt-1">Your GPS location is not available. Please update your location to enable check-in/check-out.</p>
             </div>
-          </Card>
+            <Button className="bg-[#ff9800] hover:bg-[#e68900] text-[#1a1f26] font-semibold text-xs h-8 px-4">
+              Update GPS Location
+            </Button>
+          </div>
 
-          {/* Attendance Status */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Today's Attendance
-            </h2>
-            {attendance ? (
-              <div className="space-y-3 text-sm">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            {/* Today's Status */}
+            <Card className="bg-[#252d36] border-[#3d4a5a] p-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-slate-500 dark:text-slate-400">Check-in Time</p>
-                  <p className="text-slate-900 dark:text-white font-medium">
-                    {new Date(attendance.check_in_time).toLocaleTimeString()}
-                  </p>
+                  <p className="text-[#a0aab5] text-xs font-semibold uppercase mb-1">TODAY'S STATUS</p>
                 </div>
-                <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-3 py-2 rounded text-sm">
-                  ✓ Checked In
-                </div>
+                <Clock className="w-6 h-6 text-[#a0aab5]" />
               </div>
-            ) : (
-              <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-3 py-2 rounded text-sm">
-                Not checked in yet
-              </div>
-            )}
-          </Card>
+              <p className="text-3xl font-bold text-[#f5f5f5] mb-2">{stats.attendanceStatus}</p>
+              <p className="text-xs text-[#a0aab5]">Click to check in</p>
+            </Card>
 
-          {/* Quick Actions */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-2">
-              <Button 
-                onClick={() => router.push('/attendance/check-in')}
-                className="w-full" 
-                variant="outline"
-              >
-                Check In/Out
-              </Button>
-              <Button 
-                onClick={() => router.push('/leave/management')}
-                className="w-full" 
-                variant="outline"
-              >
-                Request Leave
-              </Button>
-              <Button 
-                onClick={() => router.push('/profile')}
-                className="w-full" 
-                variant="outline"
-              >
-                My Profile
-              </Button>
-              {user?.role === 'admin' || user?.role === 'department_head' ? (
+            {/* This Month */}
+            <Card className="bg-[#252d36] border-[#3d4a5a] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[#a0aab5] text-xs font-semibold uppercase mb-1">THIS MONTH</p>
+                </div>
+                <TrendingUp className="w-6 h-6 text-[#a0aab5]" />
+              </div>
+              <p className="text-3xl font-bold text-[#00ff00] mb-2">{stats.daysAttended}</p>
+              <p className="text-xs text-[#a0aab5]">Days attended</p>
+              <p className="text-xs text-[#00ff00] mt-2">↑ 5% from last month</p>
+            </Card>
+
+            {/* Department */}
+            <Card className="bg-[#252d36] border-[#3d4a5a] p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[#a0aab5] text-xs font-semibold uppercase mb-1">DEPARTMENT</p>
+                </div>
+                <Users className="w-6 h-6 text-[#a0aab5]" />
+              </div>
+              <p className="text-xl font-bold text-[#f5f5f5] mb-2">{stats.department}</p>
+              <p className="text-xs text-[#a0aab5]">{stats.department}</p>
+            </Card>
+          </div>
+
+          {/* Main Sections */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Quick Actions */}
+            <Card className="bg-[#252d36] border-[#3d4a5a] p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#00ff00]/20 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-[#00ff00]" />
+                </div>
+                <h3 className="text-lg font-bold text-[#f5f5f5]">Quick Actions</h3>
+              </div>
+              <p className="text-sm text-[#a0aab5] mb-4">Common tasks and shortcuts for daily operations</p>
+              <div className="space-y-2">
                 <Button 
-                  onClick={() => router.push('/admin/dashboard')}
-                  className="w-full" 
-                  variant="outline"
+                  onClick={() => router.push('/attendance/check-in')}
+                  className="w-full bg-[#3d4a5a] hover:bg-[#4a5868] text-[#f5f5f5] font-medium h-10 justify-start"
                 >
-                  Admin Panel
+                  <Clock className="w-4 h-4 mr-2" />
+                  Record your daily attendance with location verification
                 </Button>
-              ) : null}
-            </div>
-          </Card>
-        </div>
+                <Button 
+                  onClick={() => router.push('/leave/management')}
+                  className="w-full bg-[#3d4a5a] hover:bg-[#4a5868] text-[#f5f5f5] font-medium h-10 justify-start"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Quick attendance for events and special activities
+                </Button>
+              </div>
+            </Card>
 
-        {/* Additional Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Leave Balance */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Leave Balance
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-600 dark:text-slate-400">Annual Leave</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">21 days</span>
+            {/* Recent Activity */}
+            <Card className="bg-[#252d36] border-[#3d4a5a] p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#00ff00]/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[#00ff00]" />
                 </div>
-                <div className="bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                <h3 className="text-lg font-bold text-[#f5f5f5]">Recent Activity</h3>
+              </div>
+              <p className="text-sm text-[#a0aab5] mb-4">Your latest attendance records</p>
+              <div className="flex items-center justify-center h-24">
+                <div className="text-center">
+                  <Clock className="w-12 h-12 text-[#a0aab5] opacity-50 mx-auto mb-2" />
+                  <p className="text-[#a0aab5] text-sm">No attendance recorded today</p>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-600 dark:text-slate-400">Sick Leave</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">14 days</span>
-                </div>
-                <div className="bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Notifications */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Recent Notifications
-            </h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                <span className="text-blue-600 dark:text-blue-400">ℹ</span>
-                <p className="text-slate-700 dark:text-slate-300">System is running normally</p>
-              </div>
-              <div className="flex gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded">
-                <span className="text-slate-500 dark:text-slate-400">●</span>
-                <p className="text-slate-700 dark:text-slate-300">No pending approvals</p>
-              </div>
-            </div>
-          </Card>
+              <p className="text-xs text-[#a0aab5] text-center mt-2">Use the quick actions to check in</p>
+            </Card>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
